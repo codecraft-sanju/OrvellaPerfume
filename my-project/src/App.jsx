@@ -8,7 +8,7 @@ import { ShopProvider } from './components/ShopContext';
 // Import Pages
 import Home from './components/Home';
 import AdminDashboard from './components/AdminDashboard';
-import AuthPage from './components/AuthPage'; // Imported new page
+import AuthPage from './components/AuthPage'; 
 
 function App() {
   return (

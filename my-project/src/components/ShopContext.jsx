@@ -6,8 +6,10 @@ const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
 
-// Backend URL
-const API_URL = "http://localhost:5000/api/v1";
+// --- API CONFIGURATION ---
+// .env se URL le rahe hain. Agar .env load nahi hua toh localhost fallback use karega.
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const API_URL = `${BACKEND_URL}/api/v1`;
 
 export const ShopProvider = ({ children }) => {
   const [products, setProducts] = useState([]); // Now using Real Data

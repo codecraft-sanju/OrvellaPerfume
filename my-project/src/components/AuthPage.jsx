@@ -1,4 +1,3 @@
-// components/AuthPage.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +7,10 @@ import {
   CheckCircle, AlertCircle, Loader2 
 } from "lucide-react";
 import { useShop } from "./ShopContext";
+
+// --- API CONFIGURATION ---
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const API_URL = `${BACKEND_URL}/api/v1`;
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -59,9 +62,10 @@ export default function AuthPage() {
           withCredentials: true // CRITICAL: Allows browser to save the HTTPOnly Cookie
       };
       
+      // Use API_URL from env
       const url = isLogin 
-          ? "http://localhost:5000/api/v1/login" 
-          : "http://localhost:5000/api/v1/register";
+          ? `${API_URL}/login` 
+          : `${API_URL}/register`;
 
       const { data } = await axios.post(url, formData, config);
 

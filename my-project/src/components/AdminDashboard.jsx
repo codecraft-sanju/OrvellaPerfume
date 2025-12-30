@@ -10,8 +10,10 @@ import {
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
-const API_URL = "http://localhost:5000/api/v1"; 
-const socket = io("http://localhost:5000"); // Connect to Backend
+// Using import.meta.env for Vite environment variables
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const API_URL = `${BACKEND_URL}/api/v1`; 
+const socket = io(BACKEND_URL); 
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
