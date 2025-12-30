@@ -23,6 +23,9 @@ const connectDatabase = () => {
 };
 
 connectDatabase();
+app.get("/", (req, res) => {
+    res.send("Backend is Running! 🚀");
+});
 
 const server = http.createServer(app);
 
