@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+// Note: useNavigate hum function argument ke roop mein receive karte hain
 
 const ShopContext = createContext();
 
@@ -16,6 +16,10 @@ export const ShopProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);
   const [user, setUser] = useState(null); 
   const [loading, setLoading] = useState(true);
+
+  // --- 🔥 NEW: SUCCESS MODAL STATE ---
+  // URL ki jagah hum is state ko true karenge order hone par
+  const [showOrderSuccess, setShowOrderSuccess] = useState(false);
 
   // --- LOAD DATA ---
   useEffect(() => {
@@ -68,7 +72,7 @@ export const ShopProvider = ({ children }) => {
     );
   };
 
-  // --- CHECKOUT LOGIC (UPDATED) ---
+  // --- CHECKOUT LOGIC (FIXED & UPDATED) ---
   const createOrder = async (shippingInfo, navigate) => {
     if (!user) {
         showNotification("Please login to place an order");
@@ -108,12 +112,15 @@ export const ShopProvider = ({ children }) => {
         // Send to Backend
         await axios.post(`${API_URL}/order/new`, orderData, config);
 
-        // Success - 🔥 MODIFIED HERE TO TRIGGER MODAL ON HOME
+        // --- 🔥 SUCCESS LOGIC FIXED HERE ---
         setCart([]); // Clear Cart
         setIsCartOpen(false);
         
-        // Redirect to Home with query param
-        navigate("/?order=success"); 
+        // Modal State ko True karein
+        setShowOrderSuccess(true); 
+        
+        // Seedha Home par bhejein (URL param ki zarurat nahi ab)
+        navigate("/"); 
         
     } catch (error) {
         console.error("Order Failed", error);
@@ -148,7 +155,8 @@ export const ShopProvider = ({ children }) => {
         products, loading, cart, isCartOpen, setIsCartOpen,
         addToCart, removeFromCart, updateQty, cartTotal, cartCount,
         notification, showNotification, user, logout, manualLogin,
-        createOrder 
+        createOrder,
+        showOrderSuccess, setShowOrderSuccess // <-- Exporting state functions
       }}
     >
       {children}

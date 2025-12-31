@@ -234,16 +234,16 @@ export default function Home() {
   const { 
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
     removeFromCart, updateQty, cartTotal, cartCount, notification,
-    loading, user, logout
+    loading, user, logout,
+    showOrderSuccess, setShowOrderSuccess // 🔥 IMPORTED FROM CONTEXT
   } = useShop();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); 
-  const [orderSuccess, setOrderSuccess] = useState(false); // Success State
   
   const navigate = useNavigate();
-  const location = useLocation(); // To detect URL params
+  // const location = useLocation(); // removed as not needed for logic now
   const { scrollY } = useScroll();
   
   // Parallax Values
@@ -257,25 +257,15 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- 🔥 LOGIC: CHECK FOR ORDER SUCCESS IN URL ---
+  // Body Scroll Lock logic updated for showOrderSuccess
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('order') === 'success') {
-        setOrderSuccess(true);
-        // Clean the URL without refreshing
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [location]);
-
-  // Body Scroll Lock
-  useEffect(() => {
-    if (mobileMenuOpen || orderSuccess || selectedProduct) {
+    if (mobileMenuOpen || showOrderSuccess || selectedProduct) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [mobileMenuOpen, orderSuccess, selectedProduct]);
+  }, [mobileMenuOpen, showOrderSuccess, selectedProduct]);
 
   const DEFAULT_PRODUCT = {
     _id: "orvella-golden-root-main", 
@@ -357,7 +347,8 @@ export default function Home() {
 
       {/* --- ORDER SUCCESS MODAL --- */}
       <AnimatePresence>
-        {orderSuccess && <OrderSuccessModal onClose={() => setOrderSuccess(false)} />}
+        {/* 🔥 USING CONTEXT STATE NOW - NO URL CHECK */}
+        {showOrderSuccess && <OrderSuccessModal onClose={() => setShowOrderSuccess(false)} />}
       </AnimatePresence>
 
       {/* --- CART DRAWER --- */}
