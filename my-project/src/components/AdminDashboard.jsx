@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Settings, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, Plus, 
   MapPin, Mail, Menu, MoreVertical, Filter, Download, ChevronRight, Loader2,
-  Save, Upload 
+  Save, Upload, Edit, Trash2 // <--- Added Edit and Trash2 icons
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
@@ -29,8 +29,11 @@ export default function AdminDashboard() {
   const [customers, setCustomers] = useState([]);
   const [revenue, setRevenue] = useState(0);
 
-  // --- ADD PRODUCT MODAL STATE ---
+  // --- PRODUCT MODAL STATE (ADD & EDIT) ---
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // Track if we are editing
+  const [editProductId, setEditProductId] = useState(null); // Track ID of product being edited
+
   const [newProduct, setNewProduct] = useState({
     name: "",
     price: "",
@@ -103,27 +106,76 @@ export default function AdminDashboard() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Create Product Action
-  const handleCreateProduct = async (e) => {
+  // --- PRODUCT ACTIONS (CREATE / UPDATE / DELETE) ---
+
+  // 1. Open Modal for Create
+  const openCreateModal = () => {
+      setIsEditing(false);
+      setNewProduct({ name: "", price: "", description: "", category: "Perfume", stock: 0, imageUrl: "" });
+      setShowAddProduct(true);
+  };
+
+  // 2. Open Modal for Edit (Fill Data)
+  const openEditModal = (product) => {
+      setIsEditing(true);
+      setEditProductId(product._id);
+      // Pre-fill form with existing data
+      setNewProduct({
+          name: product.name,
+          price: product.price,
+          description: product.description,
+          category: product.category,
+          stock: product.stock,
+          imageUrl: product.images && product.images.length > 0 ? product.images[0].url : ""
+      });
+      setShowAddProduct(true);
+  };
+
+  // 3. Handle Submit (Decides whether to Create or Update)
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
+    const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
+
     try {
-      const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
-      
-      // Formatting data for Backend Schema
-      const productData = {
-        ...newProduct,
-        images: [{ public_id: "manual_entry_" + Date.now(), url: newProduct.imageUrl }]
-      };
+        const productData = {
+            ...newProduct,
+            images: [{ public_id: "manual_entry_" + Date.now(), url: newProduct.imageUrl }]
+        };
 
-      const { data } = await axios.post(`${API_URL}/admin/product/new`, productData, config);
+        if (isEditing) {
+            // UPDATE EXISTING PRODUCT
+            const { data } = await axios.put(`${API_URL}/admin/product/${editProductId}`, productData, config);
+            
+            // Update UI
+            setProducts(products.map(p => p._id === editProductId ? data.product : p));
+            showNotification("Product Updated Successfully!");
+        } else {
+            // CREATE NEW PRODUCT
+            const { data } = await axios.post(`${API_URL}/admin/product/new`, productData, config);
+            
+            // Update UI
+            setProducts([data.product, ...products]);
+            showNotification("Product Added Successfully!");
+        }
 
-      setProducts([data.product, ...products]); // Update UI instantly
-      setShowAddProduct(false); // Close Modal
-      setNewProduct({ name: "", price: "", description: "", category: "Perfume", stock: 0, imageUrl: "" }); // Reset Form
-      showNotification("Product Added Successfully!");
+        setShowAddProduct(false); // Close Modal
+        
     } catch (error) {
-      showNotification(error.response?.data?.message || "Failed to create product");
+        showNotification(error.response?.data?.message || "Operation failed");
     }
+  };
+
+  // 4. Delete Product
+  const handleDeleteProduct = async (id) => {
+      if(!window.confirm("Are you sure you want to delete this product?")) return;
+
+      try {
+          await axios.delete(`${API_URL}/admin/product/${id}`, { withCredentials: true });
+          setProducts(products.filter(p => p._id !== id));
+          showNotification("Product Deleted Successfully");
+      } catch (error) {
+          showNotification(error.response?.data?.message || "Failed to delete product");
+      }
   };
 
   // Update Order Status via API
@@ -159,7 +211,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- NEW: UPDATE USER ROLE ---
+  // Update User Role
   const updateUserRole = async (userId, newRole) => {
     if(!window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return;
 
@@ -466,14 +518,14 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* 3. INVENTORY TAB (Updated with Add Product Logic) */}
+                {/* 3. INVENTORY TAB (Updated with Edit/Delete Logic) */}
                 {activeTab === 'inventory' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Add New Product Card - NOW CLICKABLE */}
+                        {/* Add New Product Card */}
                         <motion.div 
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => setShowAddProduct(true)}
+                            onClick={openCreateModal}
                             className="border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-[#D4AF37] hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 cursor-pointer transition-all group min-h-[300px]"
                         >
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-[#D4AF37]/20 transition-colors">
@@ -490,12 +542,32 @@ export default function AdminDashboard() {
                             >
                                 <div className="h-48 bg-[#0a0a0a] relative p-6 flex items-center justify-center overflow-hidden">
                                     <img src={product.images && product.images[0]?.url ? product.images[0].url : "/orvella.jpeg"} alt={product.name} className="h-full object-contain relative z-0 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-700 ease-out" />
+                                    
+                                    {/* Stock Badge (Top Right) */}
                                     <div className="absolute top-4 right-4 z-20">
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md ${
                                             product.stock > 10 ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400"
                                         }`}>
                                             {product.stock > 0 ? "In Stock" : "Out of Stock"}
                                         </span>
+                                    </div>
+
+                                    {/* Edit/Delete Buttons (Top Left) */}
+                                    <div className="absolute top-4 left-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); openEditModal(product); }}
+                                            className="p-2 bg-black/50 hover:bg-[#D4AF37] text-white hover:text-black rounded-full backdrop-blur-sm transition-colors border border-white/10"
+                                            title="Edit Product"
+                                        >
+                                            <Edit size={14} />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product._id); }}
+                                            className="p-2 bg-black/50 hover:bg-red-500 text-white rounded-full backdrop-blur-sm transition-colors border border-white/10"
+                                            title="Delete Product"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </div>
                                 
@@ -522,7 +594,7 @@ export default function AdminDashboard() {
                       </div>
                 )}
 
-                {/* 4. CUSTOMERS TAB - UPDATED WITH ROLE CHANGE */}
+                {/* 4. CUSTOMERS TAB */}
                 {activeTab === 'customers' && (
                     <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                         <div className="overflow-x-auto">
@@ -585,7 +657,7 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* --- ADD PRODUCT MODAL --- */}
+      {/* --- ADD / EDIT PRODUCT MODAL --- */}
       <AnimatePresence>
         {showAddProduct && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
@@ -599,11 +671,11 @@ export default function AdminDashboard() {
                 className="bg-[#121212] border border-white/10 w-full max-w-lg rounded-xl p-8 relative z-10 shadow-[0_0_50px_rgba(212,175,55,0.1)]"
              >
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-serif text-[#D4AF37]">New Product</h2>
+                    <h2 className="text-2xl font-serif text-[#D4AF37]">{isEditing ? "Edit Product" : "New Product"}</h2>
                     <button onClick={() => setShowAddProduct(false)} className="text-gray-500 hover:text-white"><X /></button>
                 </div>
                 
-                <form onSubmit={handleCreateProduct} className="space-y-4">
+                <form onSubmit={handleProductSubmit} className="space-y-4">
                     <div>
                         <label className="text-xs uppercase text-gray-500 font-bold">Product Name</label>
                         <input type="text" required value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
@@ -629,7 +701,7 @@ export default function AdminDashboard() {
                     </div>
                     
                     <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded hover:bg-white transition-colors flex items-center justify-center gap-2 mt-4">
-                        <Save size={18} /> Create Product
+                        <Save size={18} /> {isEditing ? "Update Product" : "Create Product"}
                     </button>
                 </form>
              </motion.div>
