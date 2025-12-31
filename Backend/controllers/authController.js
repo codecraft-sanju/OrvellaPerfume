@@ -25,7 +25,10 @@ const sendToken = (user, statusCode, res) => {
       Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
     ),
     httpOnly: true, // Prevents client-side JS from reading the cookie (Security)
-    secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+    
+    // 🔥 CRITICAL FIX FOR VERCEL + RENDER DEPLOYMENT 🔥
+    secure: true,       // Hamesha true rakhein (Render HTTPS use karta hai)
+    sameSite: 'none',   // Cross-site requests allow karne ke liye zaroori hai
   };
 
   res.status(statusCode).cookie('token', token, options).json({
@@ -96,9 +99,12 @@ exports.loginUser = async (req, res, next) => {
 // @desc    Logout user
 // @route   GET /api/v1/logout
 exports.logout = async (req, res, next) => {
+  // Logout karte waqt bhi same options hone chahiye taaki cookie clear ho sake
   res.cookie('token', null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+    secure: true,     // Added for consistency
+    sameSite: 'none'  // Added for consistency
   });
 
   res.status(200).json({
@@ -111,12 +117,13 @@ exports.logout = async (req, res, next) => {
 // @route   GET /api/v1/me
 exports.getUserProfile = async (req, res, next) => {
   try {
+    // req.user is populated by isAuthenticatedUser middleware
     const user = await User.findById(req.user.id);
     res.status(200).json({
       success: true,
       user,
     });
   } catch (error) {
-     res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({ success: false, message: error.message });
   }
 };
