@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, 
   Save, Edit, Trash2, Calendar, Star, AlertTriangle, Menu,
-  Filter, ChevronRight, DollarSign, LogOut
+  Filter, ChevronRight, DollarSign, LogOut, Loader2
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -64,6 +64,13 @@ export default function AdminDashboard() {
   const [notification, setNotification] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // --- ACTION LOADING STATES ---
+  // Tracks specific ID and Action type (e.g., { id: 'order123', type: 'status' })
+  const [actionLoading, setActionLoading] = useState(null); 
+  // Tracks global form submissions (like Edit Product)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
 
   // --- DATA STATES ---
@@ -143,6 +150,7 @@ export default function AdminDashboard() {
 
   // --- PRODUCT LOGIC ---
   const initializeProduct = async () => {
+    setIsSubmitting(true); // Start Loader
     const defaultData = {
         name: "Orvella The Golden Root",
         price: 5999, 
@@ -161,6 +169,8 @@ export default function AdminDashboard() {
         fetchData(); 
     } catch (error) {
         showNotification("Failed to initialize");
+    } finally {
+        setIsSubmitting(false); // Stop Loader
     }
   };
 
@@ -181,6 +191,8 @@ export default function AdminDashboard() {
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true); // Start Loader
+
     try {
         const updateData = {
             ...productForm,
@@ -197,38 +209,63 @@ export default function AdminDashboard() {
         setShowEditModal(false);
     } catch (error) {
         showNotification("Update Failed");
+    } finally {
+        setIsSubmitting(false); // Stop Loader
     }
   };
 
   // --- ORDER ACTIONS ---
   const cycleStatus = async (id, currentStatus, e) => {
     e?.stopPropagation();
+    // Prevent double clicks if already loading
+    if (actionLoading?.id === id) return;
+
+    setActionLoading({ id, type: 'status' }); // Set Loader for specific ID
+
     const statuses = ["Pending", "Shipped", "Delivered", "Cancelled"];
     const nextStatus = statuses[(statuses.indexOf(currentStatus) + 1) % statuses.length];
+    
     try {
         await axios.put(`${API_URL}/admin/order/${id}`, { status: nextStatus }, { withCredentials: true });
         setOrders(orders.map(o => o._id === id ? { ...o, orderStatus: nextStatus } : o));
         showNotification(`Status: ${nextStatus}`);
-    } catch (e) { showNotification("Failed to update"); }
+    } catch (e) { 
+        showNotification("Failed to update"); 
+    } finally {
+        setActionLoading(null); // Clear Loader
+    }
   };
 
   const deleteOrder = async (id, e) => {
     e?.stopPropagation();
     if(!window.confirm("Delete this order?")) return;
+    
+    setActionLoading({ id, type: 'delete' }); // Set Loader
+
     try {
         await axios.delete(`${API_URL}/admin/order/${id}`, { withCredentials: true });
         setOrders(orders.filter(o => o._id !== id));
         showNotification("Order deleted");
-    } catch (e) { showNotification("Failed delete"); }
+    } catch (e) { 
+        showNotification("Failed delete"); 
+        setActionLoading(null); // Only clear if failed, otherwise item is gone
+    }
   };
 
   const updateUserRole = async (userId, newRole) => {
     if(!window.confirm(`Make user ${newRole}?`)) return;
+    
+    setActionLoading({ id: userId, type: 'role' }); // Set Loader
+
     try {
         await axios.put(`${API_URL}/admin/user/${userId}`, { role: newRole }, { headers: { "Content-Type": "application/json" }, withCredentials: true });
         setCustomers(customers.map(u => u._id === userId ? { ...u, role: newRole } : u));
         showNotification("Role Updated");
-    } catch (e) { showNotification("Failed update"); }
+    } catch (e) { 
+        showNotification("Failed update"); 
+    } finally {
+        setActionLoading(null);
+    }
   };
 
   // --- FILTERED DATA ---
@@ -428,17 +465,37 @@ export default function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-4 text-white">₹{order.totalPrice}</td>
                                         <td className="px-6 py-4">
-                                            <button onClick={(e) => cycleStatus(order._id, order.orderStatus, e)} className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-max ${
-                                                order.orderStatus === 'Delivered' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 
-                                                order.orderStatus === 'Cancelled' ? 'border-red-500/20 bg-red-500/10 text-red-500' :
-                                                'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
-                                            }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${order.orderStatus === 'Delivered' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                                                {order.orderStatus}
+                                            <button 
+                                                onClick={(e) => cycleStatus(order._id, order.orderStatus, e)} 
+                                                disabled={actionLoading?.id === order._id}
+                                                className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-max min-w-[100px] justify-center transition-all ${
+                                                    order.orderStatus === 'Delivered' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 
+                                                    order.orderStatus === 'Cancelled' ? 'border-red-500/20 bg-red-500/10 text-red-500' :
+                                                    'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
+                                                }`}
+                                            >
+                                                {actionLoading?.id === order._id && actionLoading?.type === 'status' ? (
+                                                    <Loader2 className="animate-spin" size={12} />
+                                                ) : (
+                                                    <>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${order.orderStatus === 'Delivered' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                                                        {order.orderStatus}
+                                                    </>
+                                                )}
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={(e) => deleteOrder(order._id, e)} className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                                            <button 
+                                                onClick={(e) => deleteOrder(order._id, e)} 
+                                                disabled={actionLoading?.id === order._id}
+                                                className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-500 rounded-lg transition-colors"
+                                            >
+                                                {actionLoading?.id === order._id && actionLoading?.type === 'delete' ? (
+                                                    <Loader2 className="animate-spin text-red-500" size={16}/>
+                                                ) : (
+                                                    <Trash2 size={16}/>
+                                                )}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -468,17 +525,32 @@ export default function AdminDashboard() {
                                 <div className="flex justify-between items-center border-t border-white/5 pt-4 mt-2">
                                     <button 
                                         onClick={(e) => cycleStatus(order._id, order.orderStatus, e)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 ${
+                                        disabled={actionLoading?.id === order._id}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 min-w-[110px] justify-center ${
                                             order.orderStatus === 'Delivered' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 
                                             order.orderStatus === 'Cancelled' ? 'border-red-500/20 bg-red-500/10 text-red-500' :
                                             'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
                                         }`}
                                     >
-                                        {order.orderStatus} <Edit size={12} />
+                                        {actionLoading?.id === order._id && actionLoading?.type === 'status' ? (
+                                             <Loader2 className="animate-spin" size={12} />
+                                        ) : (
+                                            <>
+                                                {order.orderStatus} <Edit size={12} />
+                                            </>
+                                        )}
                                     </button>
                                     
-                                    <button onClick={(e) => deleteOrder(order._id, e)} className="text-gray-500 hover:text-red-500 p-2">
-                                        <Trash2 size={18} />
+                                    <button 
+                                        onClick={(e) => deleteOrder(order._id, e)} 
+                                        disabled={actionLoading?.id === order._id}
+                                        className="text-gray-500 hover:text-red-500 p-2"
+                                    >
+                                        {actionLoading?.id === order._id && actionLoading?.type === 'delete' ? (
+                                            <Loader2 className="animate-spin text-red-500" size={18}/>
+                                        ) : (
+                                            <Trash2 size={18} />
+                                        )}
                                     </button>
                                 </div>
                             </motion.div>
@@ -498,8 +570,12 @@ export default function AdminDashboard() {
                             </div>
                             <h3 className="text-2xl text-white font-serif mb-2">Database Empty</h3>
                             <p className="text-gray-500 mb-8 max-w-sm">The product database hasn't been initialized yet. Create the master product to start selling.</p>
-                            <button onClick={initializeProduct} className="bg-[#D4AF37] text-black font-bold px-8 py-3 rounded-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)]">
-                                Initialize Master Product
+                            <button 
+                                onClick={initializeProduct} 
+                                disabled={isSubmitting}
+                                className="bg-[#D4AF37] text-black font-bold px-8 py-3 rounded-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isSubmitting ? <><Loader2 className="animate-spin" size={18}/> Initializing...</> : "Initialize Master Product"}
                             </button>
                         </div>
                     ) : (
@@ -564,11 +640,17 @@ export default function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="p-4">{u.email}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 relative">
+                                            {actionLoading?.id === u._id && actionLoading?.type === 'role' && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                                    <Loader2 className="animate-spin text-[#D4AF37]" size={16}/>
+                                                </div>
+                                            )}
                                             <select 
                                                 value={u.role} 
+                                                disabled={actionLoading?.id === u._id}
                                                 onChange={(e) => updateUserRole(u._id, e.target.value)} 
-                                                className="bg-black border border-white/20 rounded px-2 py-1 text-xs outline-none focus:border-[#D4AF37]"
+                                                className="bg-black border border-white/20 rounded px-2 py-1 text-xs outline-none focus:border-[#D4AF37] disabled:opacity-50"
                                             >
                                                 <option value="user">USER</option>
                                                 <option value="admin">ADMIN</option>
@@ -607,7 +689,13 @@ export default function AdminDashboard() {
                             </div>
                             <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Image URL</label><input type="text" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none text-xs"/></div>
                             <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Description</label><textarea value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none h-32 resize-none"/></div>
-                            <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded-xl hover:bg-white transition-colors mt-4 shadow-lg shadow-[#D4AF37]/20">Save Updates</button>
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded-xl hover:bg-white transition-colors mt-4 shadow-lg shadow-[#D4AF37]/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? <><Loader2 className="animate-spin" size={20}/> Processing...</> : "Save Updates"}
+                            </button>
                         </form>
                     </motion.div>
                 </div>
