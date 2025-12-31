@@ -237,9 +237,7 @@ const OrderSuccessModal = ({ onClose, onContinueShopping }) => {
   );
 };
 
-// ==========================================
-// MAIN PAGE COMPONENT
-// ==========================================
+
 export default function Home() {
   const { 
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
@@ -616,7 +614,7 @@ export default function Home() {
               initial={{ opacity: 0, letterSpacing: "1em" }} animate={{ opacity: 1, letterSpacing: "0.4em" }} transition={{ duration: 1.5 }}
               className="text-[#D4AF37] text-xs md:text-sm uppercase font-bold pl-1"
             >
-              Premium Edition 2025
+              Premium Edition 2026
             </motion.div>
             
             <AnimatedTitle text="The Golden Root" className="text-5xl md:text-8xl lg:text-9xl font-serif font-bold text-white leading-[1] md:leading-[0.9] justify-center md:justify-start" />
@@ -826,7 +824,7 @@ export default function Home() {
             </div>
 
             <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-700 font-mono">
-                <p>&copy; 2025 Orvella. All Rights Reserved.</p>
+                <p>&copy; 2026 Orvella. All Rights Reserved.</p>
                 <div className="flex gap-8 mt-4 md:mt-0">
                     <Link to="#" className="hover:text-white transition-colors">Privacy</Link>
                     <Link to="#" className="hover:text-white transition-colors">Terms</Link>
