@@ -68,7 +68,7 @@ export const ShopProvider = ({ children }) => {
     );
   };
 
-  // --- CHECKOUT LOGIC (NEW) ---
+  // --- CHECKOUT LOGIC (UPDATED) ---
   const createOrder = async (shippingInfo, navigate) => {
     if (!user) {
         showNotification("Please login to place an order");
@@ -108,10 +108,12 @@ export const ShopProvider = ({ children }) => {
         // Send to Backend
         await axios.post(`${API_URL}/order/new`, orderData, config);
 
-        // Success
+        // Success - 🔥 MODIFIED HERE TO TRIGGER MODAL ON HOME
         setCart([]); // Clear Cart
         setIsCartOpen(false);
-        navigate("/success"); // Go to success page
+        
+        // Redirect to Home with query param
+        navigate("/?order=success"); 
         
     } catch (error) {
         console.error("Order Failed", error);

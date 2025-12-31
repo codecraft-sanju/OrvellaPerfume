@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // --- SIBLING IMPORT ---
-import { useShop } from "./ShopContext"; 
+import { useShop } from "../context/ShopContext"; 
 
 // ==========================================
 // 1. COMPONENT: CINEMATIC NOISE OVERLAY
@@ -147,7 +147,7 @@ const TiltCard = ({ children }) => {
 };
 
 // ==========================================
-// 6. COMPONENT: ORDER SUCCESS MODAL (NEW 🔥)
+// 6. COMPONENT: ULTIMATE SUCCESS MODAL (UPDATED 🔥)
 // ==========================================
 const OrderSuccessModal = ({ onClose }) => {
   return (
@@ -155,51 +155,73 @@ const OrderSuccessModal = ({ onClose }) => {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[120] flex items-center justify-center px-4"
     >
-      {/* Backdrop with Blur */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+      {/* Backdrop with Heavy Blur */}
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" onClick={onClose} />
       
       <motion.div 
-        initial={{ scale: 0.8, opacity: 0, y: 20 }} 
+        initial={{ scale: 0.5, opacity: 0, y: 50 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", duration: 0.8 }}
-        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37] w-full max-w-md rounded-2xl p-8 md:p-12 text-center shadow-[0_0_80px_rgba(212,175,55,0.2)] overflow-hidden"
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: "spring", duration: 0.8, bounce: 0.3 }}
+        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37] w-full max-w-md rounded-lg p-10 text-center shadow-[0_0_100px_rgba(212,175,55,0.3)] overflow-hidden"
       >
-        {/* Confetti / Glow Effect */}
-        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_#D4AF3715_0%,_transparent_70%)] animate-pulse" />
+        {/* Animated Background Rays */}
+        <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,_transparent_0%,_#D4AF3710_25%,_transparent_50%,_#D4AF3710_75%,_transparent_100%)] animate-[spin_10s_linear_infinite] opacity-50" />
 
-        {/* Animated Checkmark SVG */}
-        <div className="relative mb-8 flex justify-center">
-            <svg width="100" height="100" viewBox="0 0 100 100" className="drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]">
+        {/* --- THE CINEMATIC TICK ANIMATION --- */}
+        <div className="relative mb-8 flex justify-center items-center">
+            {/* Outer Glow Circle */}
+            <motion.div 
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.2 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="absolute w-32 h-32 rounded-full bg-[#D4AF37] blur-xl"
+            />
+            
+            <svg width="120" height="120" viewBox="0 0 100 100" className="relative z-10">
+                {/* Circle drawing itself */}
                 <motion.circle 
                     cx="50" cy="50" r="45" 
                     fill="none" stroke="#D4AF37" strokeWidth="2"
-                    initial={{ pathLength: 0, rotate: -90 }}
-                    animate={{ pathLength: 1, rotate: 0 }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                    initial={{ pathLength: 0, rotate: -90, opacity: 0 }}
+                    animate={{ pathLength: 1, rotate: 0, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
                 />
+                
+                {/* Checkmark drawing itself (Staggered) */}
                 <motion.path 
                     d="M30 52 L43 65 L70 35" 
-                    fill="none" stroke="#D4AF37" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
+                    fill="none" stroke="#D4AF37" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.4, type: "spring" }}
                 />
             </svg>
         </div>
 
-        <h2 className="text-3xl font-serif text-white mb-2 tracking-wide">Order Confirmed</h2>
-        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-            Thank you for choosing Orvella. Your legacy awaits. <br/>
-            <span className="text-[#D4AF37]">Order ID: #{Math.floor(100000 + Math.random() * 900000)}</span>
-        </p>
+        {/* Text Animations */}
+        <motion.h2 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+            className="text-3xl font-serif text-white mb-2 tracking-wide uppercase"
+        >
+            Order Placed
+        </motion.h2>
+        
+        <motion.p 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+            className="text-gray-400 text-sm mb-8 leading-relaxed font-light"
+        >
+            Your legacy has been secured. <br/>
+            <span className="text-[#D4AF37] font-mono mt-2 block">ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</span>
+        </motion.p>
 
-        <button 
+        <motion.button 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
             onClick={onClose}
-            className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm"
+            className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.4)]"
         >
             Continue Shopping
-        </button>
+        </motion.button>
       </motion.div>
     </motion.div>
   );
@@ -625,7 +647,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6">
             <div className="grid md:grid-cols-2 gap-20 items-center">
                 <RevealOnScroll>
-                   <div className="relative bg-[#0a0a0a] p-16 border border-white/5 rounded-sm overflow-hidden group">
+                    <div className="relative bg-[#0a0a0a] p-16 border border-white/5 rounded-sm overflow-hidden group">
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50" />
                       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50" />
                       <div className="absolute top-4 left-4 border-t border-l border-[#D4AF37] w-8 h-8 transition-all group-hover:w-16 group-hover:h-16"/>
@@ -635,47 +657,47 @@ export default function Home() {
                           alt="Orvella Detail" 
                           className="w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] transform group-hover:scale-105 transition-transform duration-700"
                       />
-                   </div>
+                    </div>
                 </RevealOnScroll>
 
                 <div className="space-y-10">
-                   <RevealOnScroll delay={0.2}>
-                       <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-xs flex items-center gap-4">
-                         <span className="w-12 h-[1px] bg-[#D4AF37]"></span> The Masterpiece
-                       </span>
-                       <h2 className="mt-6 text-5xl md:text-6xl font-serif text-white">Unveiling The <br/> <span className="italic text-[#D4AF37]">Golden Root</span></h2>
-                   </RevealOnScroll>
+                    <RevealOnScroll delay={0.2}>
+                        <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-xs flex items-center gap-4">
+                          <span className="w-12 h-[1px] bg-[#D4AF37]"></span> The Masterpiece
+                        </span>
+                        <h2 className="mt-6 text-5xl md:text-6xl font-serif text-white">Unveiling The <br/> <span className="italic text-[#D4AF37]">Golden Root</span></h2>
+                    </RevealOnScroll>
                     
-                   <RevealOnScroll delay={0.3}>
-                     <p className="text-gray-400 leading-loose text-lg">
-                         {heroProduct.description}
-                     </p>
-                   </RevealOnScroll>
+                    <RevealOnScroll delay={0.3}>
+                      <p className="text-gray-400 leading-loose text-lg">
+                          {heroProduct.description}
+                      </p>
+                    </RevealOnScroll>
 
-                   <RevealOnScroll delay={0.4}>
-                     <div className="grid grid-cols-2 gap-8 border-y border-white/5 py-10">
-                         <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
-                             <h4 className="text-white font-serif text-2xl mb-2">Top Notes</h4>
-                             <p className="text-gray-500 text-sm tracking-wide">Saffron, Jasmine, Golden Amber</p>
-                         </div>
-                         <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
-                             <h4 className="text-white font-serif text-2xl mb-2">Base Notes</h4>
-                             <p className="text-gray-500 text-sm tracking-wide">Cedarwood, Musk, Rare Oud</p>
-                         </div>
-                     </div>
-                   </RevealOnScroll>
+                    <RevealOnScroll delay={0.4}>
+                      <div className="grid grid-cols-2 gap-8 border-y border-white/5 py-10">
+                          <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
+                              <h4 className="text-white font-serif text-2xl mb-2">Top Notes</h4>
+                              <p className="text-gray-500 text-sm tracking-wide">Saffron, Jasmine, Golden Amber</p>
+                          </div>
+                          <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
+                              <h4 className="text-white font-serif text-2xl mb-2">Base Notes</h4>
+                              <p className="text-gray-500 text-sm tracking-wide">Cedarwood, Musk, Rare Oud</p>
+                          </div>
+                      </div>
+                    </RevealOnScroll>
 
-                   <RevealOnScroll delay={0.5}>
-                     <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
-                         <div className="text-4xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
-                         <button 
-                             onClick={() => handleBuy(heroProduct)}
-                             className="w-full md:w-auto px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center gap-2 group"
-                         >
-                             Add to Bag <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
-                         </button>
-                     </div>
-                   </RevealOnScroll>
+                    <RevealOnScroll delay={0.5}>
+                      <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
+                          <div className="text-4xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
+                          <button 
+                              onClick={() => handleBuy(heroProduct)}
+                              className="w-full md:w-auto px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center gap-2 group"
+                          >
+                              Add to Bag <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
+                          </button>
+                      </div>
+                    </RevealOnScroll>
                 </div>
             </div>
         </div>
