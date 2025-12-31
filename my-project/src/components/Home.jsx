@@ -509,16 +509,18 @@ export default function Home() {
 
       {/* --- NAVBAR --- */}
       <nav 
-        className={`fixed w-full z-50 top-0 transition-all duration-500 ${
+        className={`fixed w-full z-[300] top-0 transition-all duration-500 ${
+          // SIBLING LOGIC FIX: When menu is open, make navbar transparent to let overlay shine through, 
+          // but because z-index is higher, buttons remain visible on top.
           mobileMenuOpen 
-            ? "bg-[#050505] py-4" 
+            ? "bg-transparent py-4" 
             : isScrolled 
               ? "bg-[#050505]/80 backdrop-blur-lg border-b border-white/5 py-4" 
               : "bg-transparent py-8"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-[0.2em] hover:text-white transition-colors relative z-[101]">
+          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-[0.2em] hover:text-white transition-colors relative z-[301]">
             ORVELLA
           </Link>
           
@@ -528,7 +530,7 @@ export default function Home() {
             <button onClick={() => scrollToSection('offer')} className="hover:text-[#D4AF37] transition-colors hover:scale-110 transform duration-300">Offers</button>
           </div>
           
-          <div className="flex items-center space-x-8 relative z-[101]">
+          <div className="flex items-center space-x-8 relative z-[301]">
              {user ? (
                <div className="hidden md:flex items-center gap-6">
                  {user.role === 'admin' ? (
@@ -553,10 +555,11 @@ export default function Home() {
             
             {/* MOBILE TOGGLE (Increased Z-Index to stay above overlay) */}
             <button 
-              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[250] relative" 
+              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[302] relative p-2" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {/* Added Gold color to X when menu is open so it's clearly visible against black overlay */}
+              {mobileMenuOpen ? <X size={28} className="text-[#D4AF37]" /> : <Menu size={24} />}
             </button>
           </div>
         </div>
