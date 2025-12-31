@@ -53,7 +53,6 @@ const TiltCard = ({ children }) => {
 
 // --- MAIN PAGE COMPONENT ---
 export default function Home() {
-  // Destructure everything including 'loading' and 'user'
   const { 
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
     removeFromCart, updateQty, cartTotal, cartCount, notification,
@@ -62,7 +61,7 @@ export default function Home() {
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null); // For Modal
+  const [selectedProduct, setSelectedProduct] = useState(null); 
   const navigate = useNavigate();
 
   // Smooth Scroll Logic
@@ -72,10 +71,18 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- HARDCODED REAL PRODUCT (FALLBACK FOR UI) ---
-  // Agar database khali hai, toh yeh dikhega taaki website blank na lage.
+  // --- NEW: SCROLL LOCK LOGIC ---
+  // Jab Mobile Menu open ho, to background scroll band kar do
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [mobileMenuOpen]);
+
   const DEFAULT_PRODUCT = {
-    _id: "orvella-golden-root-main", // Fake ID to detect emptiness
+    _id: "orvella-golden-root-main", 
     name: "Orvella The Golden Root",
     price: 5999, 
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
@@ -85,26 +92,20 @@ export default function Home() {
     tag: "Premium Edition"
   };
 
-  // Logic: Agar DB se products aaye toh woh use karo, nahi toh Default wala dikhao
   const heroProduct = products.length > 0 ? products[0] : DEFAULT_PRODUCT;
 
-  // --- LOGIC: Handle Buy Action with Alert ---
   const handleBuy = (product) => {
-    // 1. Check agar yeh Fake Product hai (Database Empty hai)
     if (product._id === "orvella-golden-root-main") {
-        alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai. Isliye order process nahi ho sakta.\n\nSolution: Please Admin Panel me login karein aur 'Add Edition' karke product save karein.");
-        return; // Yahi rok do
+        alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai.");
+        return; 
     }
-
-    // 2. Agar Real Product hai (Database se aaya hai)
     if (product) {
       addToCart(product);
-      setIsCartOpen(true); // Open cart immediately
-      setSelectedProduct(null); // Close modal if open
+      setIsCartOpen(true);
+      setSelectedProduct(null);
     }
   };
 
-  // --- LOGIC: Scroll to Section ---
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -113,7 +114,23 @@ export default function Home() {
     setMobileMenuOpen(false);
   };
 
-  // --- PRELOADER ---
+  // --- MENU ANIMATION VARIANTS ---
+  const menuVariants = {
+    closed: { opacity: 0, x: "100%" },
+    open: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+    exit: { opacity: 0, x: "100%", transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const containerVars = {
+    initial: { transition: { staggerChildren: 0.09 } },
+    open: { transition: { staggerChildren: 0.09 } }
+  };
+
+  const mobileLinkVars = {
+    initial: { y: "30vh", transition: { duration: 0.5, ease: [0.37, 0, 0.63, 1] } },
+    open: { y: 0, transition: { duration: 0.7, ease: [0, 0.55, 0.45, 1] } }
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-[#050505] z-[100] flex flex-col items-center justify-center">
@@ -141,14 +158,14 @@ export default function Home() {
         {notification && (
           <motion.div 
             initial={{ y: -100, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ y: -100, opacity: 0 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] bg-[#D4AF37] text-black px-8 py-3 rounded-b-lg font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[150] bg-[#D4AF37] text-black px-8 py-3 rounded-b-lg font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)]"
           >
             {notification}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* --- CART DRAWER (SLIDE OVER) --- */}
+      {/* --- CART DRAWER --- */}
       <AnimatePresence>
         {isCartOpen && (
           <>
@@ -171,10 +188,7 @@ export default function Home() {
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                   <ShoppingBag size={48} className="mb-4 opacity-20" />
                   <p>Your bag is empty.</p>
-                  <button 
-                    onClick={() => setIsCartOpen(false)} 
-                    className="mt-4 text-[#D4AF37] hover:underline"
-                  >
+                  <button onClick={() => setIsCartOpen(false)} className="mt-4 text-[#D4AF37] hover:underline">
                     Start Shopping
                   </button>
                 </div>
@@ -211,10 +225,7 @@ export default function Home() {
                 </div>
                 <button 
                   disabled={cart.length === 0}
-                  onClick={() => {
-                    setIsCartOpen(false);
-                    navigate("/checkout");
-                  }}
+                  onClick={() => { setIsCartOpen(false); navigate("/checkout"); }}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Checkout Now
@@ -251,8 +262,6 @@ export default function Home() {
                 <h2 className="text-4xl font-serif text-white mb-4">{selectedProduct.name}</h2>
                 <p className="text-gray-400 leading-relaxed mb-8">{selectedProduct.description}</p>
                 <div className="text-2xl text-[#D4AF37] font-serif mb-8">₹{selectedProduct.price}</div>
-                
-                {/* ACTION BUTTON WITH CHECK */}
                 <button 
                   onClick={() => handleBuy(selectedProduct)}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
@@ -265,16 +274,18 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- 1. NAVBAR --- */}
+      {/* --- 1. NAVBAR (RESPONSIVE FIX) --- */}
       <nav 
         className={`fixed w-full z-50 top-0 transition-all duration-300 ${
           isScrolled ? "bg-[#050505]/90 backdrop-blur-md border-b border-white/10 py-3" : "bg-transparent py-6"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-widest hover:opacity-80 transition-opacity">
+          <Link to="/" className="text-2xl md:text-3xl font-serif font-bold text-[#D4AF37] tracking-widest hover:opacity-80 transition-opacity z-50 relative">
             ORVELLA
           </Link>
+          
+          {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
             <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-[#D4AF37] transition-colors uppercase">Home</button>
             <button onClick={() => scrollToSection('details')} className="hover:text-[#D4AF37] transition-colors uppercase">The Scent</button>
@@ -290,7 +301,8 @@ export default function Home() {
             )}
           </div>
           
-          <div className="flex items-center space-x-6">
+          {/* Icons & Hamburger */}
+          <div className="flex items-center space-x-6 z-50 relative">
             {user && (
                 <button onClick={logout} className="text-gray-500 hover:text-red-500 hidden md:block transition-colors" title="Logout">
                     <LogOut size={20} />
@@ -305,37 +317,89 @@ export default function Home() {
                 </span>
               )}
             </button>
-            <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(true)}>
-              <Menu size={24} />
+            
+            <button className="md:hidden text-white hover:text-[#D4AF37] transition-colors" onClick={() => setMobileMenuOpen(true)}>
+              <Menu size={28} />
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <motion.div 
-            initial={{ x: "100%" }} animate={{ x: 0 }}
-            className="fixed inset-0 bg-[#050505] z-50 flex flex-col items-center justify-center space-y-8 md:hidden"
-          >
-            <button onClick={() => setMobileMenuOpen(false)} className="absolute top-6 right-6 text-[#D4AF37]">
-              <X size={32} />
-            </button>
-            <Link onClick={() => setMobileMenuOpen(false)} to="#" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Home</Link>
-            <button onClick={() => scrollToSection('details')} className="text-2xl font-serif text-white hover:text-[#D4AF37]">The Scent</button>
-            
-            {user ? (
-                <>
-                    <span className="text-[#D4AF37] text-xl font-serif">{user.name}</span>
-                    {user.role === 'admin' && (
-                        <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-[#D4AF37]">Admin Dashboard</Link>
-                    )}
-                    <button onClick={() => {logout(); setMobileMenuOpen(false);}} className="text-red-500 text-lg">Logout</button>
-                </>
-            ) : (
-                <Link onClick={() => setMobileMenuOpen(false)} to="/auth" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Login</Link>
-            )}
-          </motion.div>
-        )}
+        {/* --- IMPROVED MOBILE MENU OVERLAY --- */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              variants={menuVariants}
+              initial="closed"
+              animate="open"
+              exit="exit"
+              className="fixed inset-0 bg-[#050505]/95 backdrop-blur-xl z-[999] flex flex-col items-center justify-center md:hidden"
+            >
+                {/* Close Button Positioned absolutely top-right */}
+                <button 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="absolute top-6 right-6 text-white hover:text-[#D4AF37] transition-colors p-2"
+                >
+                  <X size={32} />
+                </button>
+
+                <motion.div 
+                  variants={containerVars}
+                  initial="initial"
+                  animate="open"
+                  exit="initial"
+                  className="flex flex-col items-center gap-8 text-center"
+                >
+                  <div className="overflow-hidden">
+                    <motion.div variants={mobileLinkVars}>
+                      <Link onClick={() => setMobileMenuOpen(false)} to="#" className="text-3xl font-serif text-white hover:text-[#D4AF37] transition-colors tracking-widest">HOME</Link>
+                    </motion.div>
+                  </div>
+                  
+                  <div className="overflow-hidden">
+                    <motion.div variants={mobileLinkVars}>
+                      <button onClick={() => scrollToSection('details')} className="text-3xl font-serif text-white hover:text-[#D4AF37] transition-colors tracking-widest">THE SCENT</button>
+                    </motion.div>
+                  </div>
+
+                  <div className="overflow-hidden">
+                    <motion.div variants={mobileLinkVars}>
+                       <button onClick={() => scrollToSection('offer')} className="text-3xl font-serif text-white hover:text-[#D4AF37] transition-colors tracking-widest">OFFERS</button>
+                    </motion.div>
+                  </div>
+
+                  {user ? (
+                    <>
+                      <div className="overflow-hidden">
+                        <motion.div variants={mobileLinkVars} className="text-[#D4AF37] text-xl font-serif italic">
+                          Hi, {user.name}
+                        </motion.div>
+                      </div>
+                      
+                      {user.role === 'admin' && (
+                        <div className="overflow-hidden">
+                          <motion.div variants={mobileLinkVars}>
+                            <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="text-2xl text-white hover:text-[#D4AF37]">Admin Dashboard</Link>
+                          </motion.div>
+                        </div>
+                      )}
+                      
+                      <div className="overflow-hidden">
+                        <motion.div variants={mobileLinkVars}>
+                           <button onClick={() => {logout(); setMobileMenuOpen(false);}} className="text-red-500 text-xl tracking-widest mt-4">LOGOUT</button>
+                        </motion.div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="overflow-hidden">
+                       <motion.div variants={mobileLinkVars}>
+                         <Link onClick={() => setMobileMenuOpen(false)} to="/auth" className="text-3xl font-serif text-[#D4AF37] border-b border-[#D4AF37] pb-1">LOGIN</Link>
+                       </motion.div>
+                    </div>
+                  )}
+                </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       {/* --- 2. HERO SECTION --- */}
@@ -351,7 +415,6 @@ export default function Home() {
           >
             <span className="text-[#D4AF37] tracking-[0.4em] text-xs md:text-sm uppercase font-bold">Premium Edition</span>
             
-            {/* Dynamic Hero Text */}
             <h1 className="text-5xl md:text-8xl font-serif font-bold text-white leading-[1.1]">
               The Golden <br/> 
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] italic">
@@ -364,7 +427,6 @@ export default function Home() {
             </p>
             
             <div className="pt-6 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
-              {/* PRIMARY ACTION BUTTON WITH CHECK */}
               <button 
                 onClick={() => handleBuy(heroProduct)} 
                 className="px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-300 relative z-50 cursor-pointer"
@@ -372,7 +434,6 @@ export default function Home() {
                 Shop Now
               </button>
               
-              {/* SECONDARY ACTION BUTTON */}
               <button 
                 onClick={() => {
                    if(heroProduct) setSelectedProduct(heroProduct);
@@ -384,7 +445,6 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Interactive 3D Product */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.2 }}
             className="relative h-[500px] md:h-[700px] w-full flex justify-center items-center cursor-pointer"
@@ -395,7 +455,6 @@ export default function Home() {
                   src={heroProduct.images[0].url} 
                   alt="Orvella Perfume Bottle" 
                   className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.25)]"
-                  // Clicking image opens details
                   onClick={() => handleBuy(heroProduct)}
                 />
              </TiltCard>
@@ -417,16 +476,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 4. THE DETAILS SECTION (SINGLE PRODUCT FOCUS) --- */}
+      {/* --- 4. THE DETAILS SECTION --- */}
       <section id="details" className="py-24 bg-[#121212]">
         <div className="max-w-7xl mx-auto px-6">
             <div className="grid md:grid-cols-2 gap-16 items-center">
-                {/* Product Imagery */}
                 <motion.div 
-                    initial={{ opacity: 0, x: -30 }} 
-                    whileInView={{ opacity: 1, x: 0 }} 
-                    viewport={{ once: true }}
-                    className="relative bg-[#050505] p-12 border border-white/5 rounded-sm"
+                   initial={{ opacity: 0, x: -30 }} 
+                   whileInView={{ opacity: 1, x: 0 }} 
+                   viewport={{ once: true }}
+                   className="relative bg-[#050505] p-12 border border-white/5 rounded-sm"
                 >
                     <div className="absolute top-4 left-4 border-t border-l border-[#D4AF37] w-8 h-8"/>
                     <div className="absolute bottom-4 right-4 border-b border-r border-[#D4AF37] w-8 h-8"/>
@@ -437,12 +495,11 @@ export default function Home() {
                     />
                 </motion.div>
 
-                {/* Product Text Details */}
                 <motion.div 
-                    initial={{ opacity: 0, x: 30 }} 
-                    whileInView={{ opacity: 1, x: 0 }} 
-                    viewport={{ once: true }}
-                    className="space-y-8"
+                   initial={{ opacity: 0, x: 30 }} 
+                   whileInView={{ opacity: 1, x: 0 }} 
+                   viewport={{ once: true }}
+                   className="space-y-8"
                 >
                     <div>
                         <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Masterpiece</span>
@@ -466,7 +523,6 @@ export default function Home() {
 
                     <div className="flex items-center gap-8">
                         <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
-                        {/* BUY BUTTON WITH CHECK */}
                         <button 
                             onClick={() => handleBuy(heroProduct)}
                             className="px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
@@ -505,7 +561,6 @@ export default function Home() {
         
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
             <div className="border border-[#D4AF37]/30 p-12 md:p-20 bg-[#050505]/80 backdrop-blur-sm relative">
-                {/* Decorative Corners */}
                 <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#D4AF37]"/>
                 <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#D4AF37]"/>
                 <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#D4AF37]"/>
@@ -582,7 +637,6 @@ export default function Home() {
                 <div className="flex gap-8 mt-4 md:mt-0">
                     <Link to="#" className="hover:text-white transition-colors">Privacy Policy</Link>
                     <Link to="#" className="hover:text-white transition-colors">Terms of Service</Link>
-                    {/* Admin Link - Hidden/Subtle */}
                     <Link to="/admin" className="hover:text-[#D4AF37] opacity-40 hover:opacity-100 transition-all">
                         Admin Login
                     </Link>
