@@ -66,10 +66,9 @@ const CustomCursor = () => {
 };
 
 // ==========================================
-// 3. COMPONENT: ANIMATED TITLE (FIXED FOR RESPONSIVE WRAPPING)
+// 3. COMPONENT: ANIMATED TITLE
 // ==========================================
 const AnimatedTitle = ({ text, className }) => {
-  // Split text into words to prevent breaking words like "Golden" into "Gold-en"
   const words = text.split(" ");
 
   const container = {
@@ -90,14 +89,13 @@ const AnimatedTitle = ({ text, className }) => {
       variants={container} 
       initial="hidden" 
       animate="visible" 
-      className={`flex flex-wrap ${className}`} // Removed overflow-hidden to allow layout flow
+      className={`flex flex-wrap ${className}`}
     >
       {words.map((word, index) => (
-        // Word Wrapper: whitespace-nowrap ensures the word stays together
         <motion.div 
           key={index} 
           className="inline-block whitespace-nowrap mr-[0.25em] last:mr-0"
-          variants={container} // Apply stagger to letters inside the word
+          variants={container}
         >
           {Array.from(word).map((letter, i) => (
             <motion.span variants={child} key={i} className="inline-block">
@@ -164,15 +162,15 @@ const TiltCard = ({ children }) => {
 };
 
 // ==========================================
-// 6. COMPONENT: ULTIMATE SUCCESS MODAL (UPDATED 🔥)
+// 6. COMPONENT: ULTIMATE SUCCESS MODAL
 // ==========================================
-const OrderSuccessModal = ({ onClose }) => {
+const OrderSuccessModal = ({ onClose, onContinueShopping }) => {
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[120] flex items-center justify-center px-4"
     >
-      {/* Backdrop with Heavy Blur */}
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" onClick={onClose} />
       
       <motion.div 
@@ -187,7 +185,6 @@ const OrderSuccessModal = ({ onClose }) => {
 
         {/* --- THE CINEMATIC TICK ANIMATION --- */}
         <div className="relative mb-8 flex justify-center items-center">
-            {/* Outer Glow Circle */}
             <motion.div 
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 0.2 }}
@@ -196,7 +193,6 @@ const OrderSuccessModal = ({ onClose }) => {
             />
             
             <svg width="120" height="120" viewBox="0 0 100 100" className="relative z-10">
-                {/* Circle drawing itself */}
                 <motion.circle 
                     cx="50" cy="50" r="45" 
                     fill="none" stroke="#D4AF37" strokeWidth="2"
@@ -204,8 +200,6 @@ const OrderSuccessModal = ({ onClose }) => {
                     animate={{ pathLength: 1, rotate: 0, opacity: 1 }}
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                 />
-                
-                {/* Checkmark drawing itself (Staggered) */}
                 <motion.path 
                     d="M30 52 L43 65 L70 35" 
                     fill="none" stroke="#D4AF37" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
@@ -216,7 +210,6 @@ const OrderSuccessModal = ({ onClose }) => {
             </svg>
         </div>
 
-        {/* Text Animations */}
         <motion.h2 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
             className="text-3xl font-serif text-white mb-2 tracking-wide uppercase"
@@ -234,7 +227,7 @@ const OrderSuccessModal = ({ onClose }) => {
 
         <motion.button 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
-            onClick={onClose}
+            onClick={onContinueShopping} 
             className="w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.4)]"
         >
             Continue Shopping
@@ -252,7 +245,7 @@ export default function Home() {
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
     removeFromCart, updateQty, cartTotal, cartCount, notification,
     loading, user, logout,
-    showOrderSuccess, setShowOrderSuccess // 🔥 IMPORTED FROM CONTEXT
+    showOrderSuccess, setShowOrderSuccess
   } = useShop();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -260,7 +253,6 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState(null); 
   
   const navigate = useNavigate();
-  // Location logic removed to prevent conflicts
   const { scrollY } = useScroll();
   
   // Parallax Values
@@ -274,15 +266,41 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Body Scroll Lock logic updated for showOrderSuccess
+  // Body Scroll Lock & Back Button Handling
   useEffect(() => {
+    // 1. Lock Body Scroll
     if (mobileMenuOpen || showOrderSuccess || selectedProduct) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'unset';
     }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [mobileMenuOpen, showOrderSuccess, selectedProduct]);
+
+    // 2. Handle Browser Back Button (Mobile/Desktop)
+    // If a modal is open, back button should close modal, not leave page.
+    const handlePopState = (event) => {
+        if (showOrderSuccess) {
+            event.preventDefault();
+            setShowOrderSuccess(false);
+        } else if (selectedProduct) {
+            event.preventDefault();
+            setSelectedProduct(null);
+        } else if (mobileMenuOpen) {
+            event.preventDefault();
+            setMobileMenuOpen(false);
+        }
+    };
+
+    if (showOrderSuccess || selectedProduct || mobileMenuOpen) {
+        // Push a dummy state so the back button has something to pop
+        window.history.pushState(null, null, window.location.pathname);
+        window.addEventListener('popstate', handlePopState);
+    }
+
+    return () => {
+        window.removeEventListener('popstate', handlePopState);
+        document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen, showOrderSuccess, selectedProduct, setShowOrderSuccess]);
 
   const DEFAULT_PRODUCT = {
     _id: "orvella-golden-root-main", 
@@ -320,6 +338,16 @@ export default function Home() {
       window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
     setMobileMenuOpen(false);
+  };
+
+  // --- NEW: HANDLE CONTINUE SHOPPING ---
+  const handleContinueShopping = () => {
+    setShowOrderSuccess(false); // Close modal
+    setIsCartOpen(false);       // Close cart if open
+    // Smooth scroll to the products section
+    setTimeout(() => {
+        scrollToSection('details');
+    }, 300);
   };
 
   // --- LOADING SCREEN ---
@@ -364,8 +392,12 @@ export default function Home() {
 
       {/* --- ORDER SUCCESS MODAL --- */}
       <AnimatePresence>
-        {/* 🔥 USING CONTEXT STATE NOW - BUTTON CLICK CLOSES IT */}
-        {showOrderSuccess && <OrderSuccessModal onClose={() => setShowOrderSuccess(false)} />}
+        {showOrderSuccess && (
+            <OrderSuccessModal 
+                onClose={() => setShowOrderSuccess(false)} 
+                onContinueShopping={handleContinueShopping} 
+            />
+        )}
       </AnimatePresence>
 
       {/* --- CART DRAWER --- */}
@@ -517,7 +549,7 @@ export default function Home() {
               )}
             </button>
             
-            {/* 🔥 UPDATED MOBILE TOGGLE: HAMBURGER BECOMES X */}
+            {/* MOBILE TOGGLE */}
             <button 
               className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[150] relative" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -535,8 +567,6 @@ export default function Home() {
               className="fixed inset-0 bg-[#050505] z-[100] flex flex-col justify-center px-8 md:hidden"
             >
               <NoiseOverlay />
-              
-              {/* NOTE: Close button removed as requested. Navbar toggle handles it. */}
               
               <div className="space-y-8 relative z-10">
                 {[
