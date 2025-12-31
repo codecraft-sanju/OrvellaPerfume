@@ -237,7 +237,9 @@ const OrderSuccessModal = ({ onClose, onContinueShopping }) => {
   );
 };
 
-
+// ==========================================
+// MAIN PAGE COMPONENT
+// ==========================================
 export default function Home() {
   const { 
     products, addToCart, cart, isCartOpen, setIsCartOpen, 
@@ -508,9 +510,9 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <nav 
         className={`fixed w-full z-50 top-0 transition-all duration-500 ${
-          // SIBLING LOGIC FIX: If menu is open, stay transparent to avoid glassmorphism overlap with black menu
+          // SIBLING LOGIC FIX: When menu is open, use SOLID BLACK to prevent transparency glitches when scrolled
           mobileMenuOpen 
-            ? "bg-transparent py-4" 
+            ? "bg-[#050505] py-4" 
             : isScrolled 
               ? "bg-[#050505]/80 backdrop-blur-lg border-b border-white/5 py-4" 
               : "bg-transparent py-8"
@@ -614,7 +616,7 @@ export default function Home() {
               initial={{ opacity: 0, letterSpacing: "1em" }} animate={{ opacity: 1, letterSpacing: "0.4em" }} transition={{ duration: 1.5 }}
               className="text-[#D4AF37] text-xs md:text-sm uppercase font-bold pl-1"
             >
-              Premium Edition 2026
+              Premium Edition 2025
             </motion.div>
             
             <AnimatedTitle text="The Golden Root" className="text-5xl md:text-8xl lg:text-9xl font-serif font-bold text-white leading-[1] md:leading-[0.9] justify-center md:justify-start" />
@@ -712,8 +714,6 @@ export default function Home() {
                           {heroProduct.description}
                       </p>
                     </RevealOnScroll>
-
-                    {/* NOTES SECTION REMOVED HERE AS REQUESTED */}
 
                     <RevealOnScroll delay={0.5}>
                       <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
@@ -824,7 +824,7 @@ export default function Home() {
             </div>
 
             <div className="border-t border-white/5 pt-10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-700 font-mono">
-                <p>&copy; 2026 Orvella. All Rights Reserved.</p>
+                <p>&copy; 2025 Orvella. All Rights Reserved.</p>
                 <div className="flex gap-8 mt-4 md:mt-0">
                     <Link to="#" className="hover:text-white transition-colors">Privacy</Link>
                     <Link to="#" className="hover:text-white transition-colors">Terms</Link>
