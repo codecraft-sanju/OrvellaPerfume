@@ -72,26 +72,31 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- HARDCODED REAL PRODUCT (DEFAULT) ---
-  // Agar database empty hai, toh yeh REAL product use hoga.
+  // --- HARDCODED REAL PRODUCT (DEFAULT / FALLBACK) ---
+  // Agar database empty hai, toh yeh dikhega par buy nahi hoga.
   const DEFAULT_PRODUCT = {
-    _id: "orvella-golden-root-main", // Static ID for cart logic
+    _id: "orvella-golden-root-main", // Fake ID
     name: "Orvella The Golden Root",
-    price: 5999, // Aapka real price yahan set karein
+    price: 5999, 
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
-    images: [{ url: "/orvella.jpeg" }], // Ensure this image exists in public folder
+    images: [{ url: "/orvella.jpeg" }], 
     category: "Signature Scent",
-    stock: 100, // Available stock
+    stock: 100, 
     tag: "Premium Edition"
   };
 
   // Determine Hero Product: 
-  // Agar DB me product hai toh wo use karo, warna DEFAULT_PRODUCT use karo.
   const heroProduct = products.length > 0 ? products[0] : DEFAULT_PRODUCT;
 
   // --- LOGIC: Handle Buy Action ---
   const handleBuy = (product) => {
-    console.log("Adding to cart:", product); 
+    // Check 1: Agar yeh Fake/Dummy ID hai (Matlab Database khali hai)
+    if (product._id === "orvella-golden-root-main") {
+        alert("⚠️ DATABASE IS EMPTY!\n\nAdmin ne abhi tak koi Product add nahi kiya hai. Please Admin Dashboard me jakar pehle Product add karein tabhi Order place ho payega.");
+        return; // Yahi rok do, cart me add mat karo
+    }
+
+    // Check 2: Agar Real Product hai
     if (product) {
       addToCart(product);
       setIsCartOpen(true); // Open cart immediately
