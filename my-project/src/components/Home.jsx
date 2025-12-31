@@ -621,7 +621,8 @@ export default function Home() {
               Premium Edition 2025
             </motion.div>
             
-            <AnimatedTitle text="The Golden Root" className="text-5xl md:text-8xl lg:text-9xl font-serif font-bold text-white leading-[1] md:leading-[0.9] justify-center md:justify-start" />
+            {/* UPDATED: Changed text color to Gold (#D4AF37) */}
+            <AnimatedTitle text="The Golden Root" className="text-5xl md:text-8xl lg:text-9xl font-serif font-bold text-[#D4AF37] leading-[1] md:leading-[0.9] justify-center md:justify-start" />
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 1 }}
