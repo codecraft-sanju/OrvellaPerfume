@@ -5,7 +5,7 @@ import { CheckCircle, ArrowRight, LayoutDashboard } from 'lucide-react';
 import { useShop } from './ShopContext'; // Import Context to check user role
 
 export default function OrderSuccess() {
-  const { user } = useShop(); // Get current user state
+  const { user } = useShop(); 
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 text-center selection:bg-[#D4AF37] selection:text-black">

@@ -72,6 +72,25 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // --- LOGIC: Handle Buy Action ---
+  // Ye function item ko cart me dalega aur turant drawer open karega
+  const handleBuy = (product) => {
+    if (product) {
+      addToCart(product);
+      setIsCartOpen(true); // Open cart immediately for feedback
+      setSelectedProduct(null); // Close modal if open
+    }
+  };
+
+  // --- LOGIC: Scroll to Section ---
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMobileMenuOpen(false);
+  };
+
   // --- PRELOADER ---
   if (loading) {
     return (
@@ -133,6 +152,12 @@ export default function Home() {
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                   <ShoppingBag size={48} className="mb-4 opacity-20" />
                   <p>Your bag is empty.</p>
+                  <button 
+                    onClick={() => setIsCartOpen(false)} 
+                    className="mt-4 text-[#D4AF37] hover:underline"
+                  >
+                    Start Shopping
+                  </button>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto space-y-6 pr-2">
@@ -166,11 +191,12 @@ export default function Home() {
                   <span className="text-[#D4AF37]">₹{cartTotal.toLocaleString()}</span>
                 </div>
                 <button 
+                  disabled={cart.length === 0}
                   onClick={() => {
                     setIsCartOpen(false);
                     navigate("/checkout");
                   }}
-                  className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
+                  className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Checkout Now
                 </button>
@@ -206,8 +232,10 @@ export default function Home() {
                 <h2 className="text-4xl font-serif text-white mb-4">{selectedProduct.name}</h2>
                 <p className="text-gray-400 leading-relaxed mb-8">{selectedProduct.description}</p>
                 <div className="text-2xl text-[#D4AF37] font-serif mb-8">₹{selectedProduct.price}</div>
+                
+                {/* ACTION BUTTON */}
                 <button 
-                  onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                  onClick={() => handleBuy(selectedProduct)}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
                 >
                   Add to Collection
@@ -229,8 +257,8 @@ export default function Home() {
             ORVELLA
           </Link>
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
-            <Link to="#" className="hover:text-[#D4AF37] transition-colors">HOME</Link>
-            <a href="#details" className="hover:text-[#D4AF37] transition-colors">THE SCENT</a>
+            <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-[#D4AF37] transition-colors uppercase">Home</button>
+            <button onClick={() => scrollToSection('details')} className="hover:text-[#D4AF37] transition-colors uppercase">The Scent</button>
             
             {user ? (
                  user.role === 'admin' ? (
@@ -274,7 +302,7 @@ export default function Home() {
               <X size={32} />
             </button>
             <Link onClick={() => setMobileMenuOpen(false)} to="#" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Home</Link>
-            <a onClick={() => setMobileMenuOpen(false)} href="#details" className="text-2xl font-serif text-white hover:text-[#D4AF37]">The Scent</a>
+            <button onClick={() => scrollToSection('details')} className="text-2xl font-serif text-white hover:text-[#D4AF37]">The Scent</button>
             
             {user ? (
                 <>
@@ -316,14 +344,19 @@ export default function Home() {
             </p>
             
             <div className="pt-6 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
+              {/* PRIMARY ACTION BUTTON */}
               <button 
-                onClick={() => heroProduct && addToCart(heroProduct)} 
+                onClick={() => handleBuy(heroProduct)} 
                 className="px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-300"
               >
                 Shop Now
               </button>
+              
+              {/* SECONDARY ACTION BUTTON */}
               <button 
-                onClick={() => heroProduct && setSelectedProduct(heroProduct)} 
+                onClick={() => {
+                   if(heroProduct) setSelectedProduct(heroProduct);
+                }} 
                 className="px-10 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all duration-300"
               >
                 View Notes
@@ -342,6 +375,8 @@ export default function Home() {
                   src={heroProduct && heroProduct.images[0] ? heroProduct.images[0].url : "/orvella.jpeg"} 
                   alt="Orvella Perfume Bottle" 
                   className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.25)]"
+                  // Clicking image opens details
+                  onClick={() => heroProduct && setSelectedProduct(heroProduct)}
                 />
              </TiltCard>
           </motion.div>
@@ -411,8 +446,9 @@ export default function Home() {
 
                     <div className="flex items-center gap-8">
                         <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct ? heroProduct.price : "0"}</div>
+                        {/* BUY BUTTON */}
                         <button 
-                            onClick={() => heroProduct && addToCart(heroProduct)}
+                            onClick={() => handleBuy(heroProduct)}
                             className="px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                         >
                             Add to Bag
@@ -470,7 +506,10 @@ export default function Home() {
                 <p className="mt-6 text-gray-400 max-w-lg mx-auto">
                     Use code <span className="text-white font-bold border-b border-[#D4AF37]">ORVELLA20</span> at checkout for an exclusive 20% discount on your first purchase.
                 </p>
-                <button onClick={() => heroProduct && addToCart(heroProduct)} className="mt-10 px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-colors">
+                <button 
+                  onClick={() => handleBuy(heroProduct)} 
+                  className="mt-10 px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-colors"
+                >
                     Claim Offer
                 </button>
             </div>
@@ -496,9 +535,9 @@ export default function Home() {
                 <div className="space-y-6">
                     <h4 className="text-white font-bold uppercase tracking-widest text-xs">Menu</h4>
                     <ul className="space-y-4 text-gray-500 text-sm">
-                        <li><Link to="#" className="hover:text-[#D4AF37] transition-colors">Home</Link></li>
-                        <li><a href="#details" className="hover:text-[#D4AF37] transition-colors">The Scent</a></li>
-                        <li><a href="#offer" className="hover:text-[#D4AF37] transition-colors">Offer</a></li>
+                        <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-[#D4AF37] transition-colors">Home</button></li>
+                        <li><button onClick={() => scrollToSection('details')} className="hover:text-[#D4AF37] transition-colors">The Scent</button></li>
+                        <li><button onClick={() => scrollToSection('offer')} className="hover:text-[#D4AF37] transition-colors">Offer</button></li>
                         <li><Link to="#" className="hover:text-[#D4AF37] transition-colors">Contact</Link></li>
                     </ul>
                 </div>
