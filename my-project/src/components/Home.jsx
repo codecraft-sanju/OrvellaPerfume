@@ -73,7 +73,6 @@ export default function Home() {
   }, []);
 
   // --- PRELOADER ---
-  // Waits for ShopContext to fetch data from Backend
   if (loading) {
     return (
       <div className="fixed inset-0 bg-[#050505] z-[100] flex flex-col items-center justify-center">
@@ -93,7 +92,7 @@ export default function Home() {
     );
   }
 
-  // Determine Hero Product (First product in DB)
+  // Determine Hero Product (The ONLY product - Orvella)
   const heroProduct = products.length > 0 ? products[0] : null;
 
   return (
@@ -139,7 +138,6 @@ export default function Home() {
                 <div className="flex-1 overflow-y-auto space-y-6 pr-2">
                   {cart.map(item => (
                     <div key={item._id} className="flex gap-4 border-b border-white/5 pb-6">
-                      {/* Safety check for images */}
                       <img 
                         src={item.images && item.images[0] ? item.images[0].url : "/orvella.jpeg"} 
                         alt={item.name} 
@@ -167,11 +165,10 @@ export default function Home() {
                   <span>Subtotal</span>
                   <span className="text-[#D4AF37]">₹{cartTotal.toLocaleString()}</span>
                 </div>
-                {/* --- UPDATED CHECKOUT BUTTON --- */}
                 <button 
                   onClick={() => {
-                    setIsCartOpen(false); // Close drawer
-                    navigate("/checkout"); // Go to checkout page
+                    setIsCartOpen(false);
+                    navigate("/checkout");
                   }}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
                 >
@@ -198,9 +195,9 @@ export default function Home() {
             >
               <div className="h-[400px] md:h-auto bg-[#050505] p-8 flex items-center justify-center">
                  <img 
-                    src={selectedProduct.images && selectedProduct.images[0] ? selectedProduct.images[0].url : "/orvella.jpeg"} 
-                    alt={selectedProduct.name} 
-                    className="h-full object-contain drop-shadow-[0_10px_30px_rgba(212,175,55,0.2)]" 
+                   src={selectedProduct.images && selectedProduct.images[0] ? selectedProduct.images[0].url : "/orvella.jpeg"} 
+                   alt={selectedProduct.name} 
+                   className="h-full object-contain drop-shadow-[0_10px_30px_rgba(212,175,55,0.2)]" 
                  />
               </div>
               <div className="p-10 flex flex-col justify-center">
@@ -233,9 +230,8 @@ export default function Home() {
           </Link>
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
             <Link to="#" className="hover:text-[#D4AF37] transition-colors">HOME</Link>
-            <a href="#collection" className="hover:text-[#D4AF37] transition-colors">COLLECTION</a>
+            <a href="#details" className="hover:text-[#D4AF37] transition-colors">THE SCENT</a>
             
-            {/* Dynamic User Links */}
             {user ? (
                  user.role === 'admin' ? (
                     <Link to="/admin" className="text-[#D4AF37] font-bold tracking-wider">DASHBOARD</Link>
@@ -248,7 +244,6 @@ export default function Home() {
           </div>
           
           <div className="flex items-center space-x-6">
-            {/* Logout Button (Desktop) */}
             {user && (
                 <button onClick={logout} className="text-gray-500 hover:text-red-500 hidden md:block transition-colors" title="Logout">
                     <LogOut size={20} />
@@ -279,7 +274,7 @@ export default function Home() {
               <X size={32} />
             </button>
             <Link onClick={() => setMobileMenuOpen(false)} to="#" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Home</Link>
-            <a onClick={() => setMobileMenuOpen(false)} href="#collection" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Collection</a>
+            <a onClick={() => setMobileMenuOpen(false)} href="#details" className="text-2xl font-serif text-white hover:text-[#D4AF37]">The Scent</a>
             
             {user ? (
                 <>
@@ -306,7 +301,7 @@ export default function Home() {
             initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.2 }}
             className="space-y-6 text-center md:text-left z-10"
           >
-            <span className="text-[#D4AF37] tracking-[0.4em] text-xs md:text-sm uppercase font-bold">Premium Collection</span>
+            <span className="text-[#D4AF37] tracking-[0.4em] text-xs md:text-sm uppercase font-bold">Premium Edition</span>
             
             {/* Dynamic Hero Text */}
             <h1 className="text-5xl md:text-8xl font-serif font-bold text-white leading-[1.1]">
@@ -331,7 +326,7 @@ export default function Home() {
                 onClick={() => heroProduct && setSelectedProduct(heroProduct)} 
                 className="px-10 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all duration-300"
               >
-                View Details
+                View Notes
               </button>
             </div>
           </motion.div>
@@ -367,66 +362,64 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 4. PRODUCT SHOWCASE (Collection - DYNAMIC GRID) --- */}
-      <section id="collection" className="py-24 bg-[#121212]">
+      {/* --- 4. THE DETAILS SECTION (SINGLE PRODUCT FOCUS) --- */}
+      <section id="details" className="py-24 bg-[#121212]">
         <div className="max-w-7xl mx-auto px-6">
-            
-            <div className="text-center mb-16">
-                 <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Collection</span>
-                 <h2 className="mt-4 text-4xl md:text-5xl font-serif text-white leading-tight">
-                   Exclusive <span className="italic text-[#D4AF37]">Arrivals</span>
-                 </h2>
+            <div className="grid md:grid-cols-2 gap-16 items-center">
+                {/* Product Imagery */}
+                <motion.div 
+                    initial={{ opacity: 0, x: -30 }} 
+                    whileInView={{ opacity: 1, x: 0 }} 
+                    viewport={{ once: true }}
+                    className="relative bg-[#050505] p-12 border border-white/5 rounded-sm"
+                >
+                    <div className="absolute top-4 left-4 border-t border-l border-[#D4AF37] w-8 h-8"/>
+                    <div className="absolute bottom-4 right-4 border-b border-r border-[#D4AF37] w-8 h-8"/>
+                    <img 
+                       src={heroProduct && heroProduct.images[0] ? heroProduct.images[0].url : "/orvella2.jpeg"} 
+                       alt="Orvella Detail" 
+                       className="w-full h-auto object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                    />
+                </motion.div>
+
+                {/* Product Text Details */}
+                <motion.div 
+                    initial={{ opacity: 0, x: 30 }} 
+                    whileInView={{ opacity: 1, x: 0 }} 
+                    viewport={{ once: true }}
+                    className="space-y-8"
+                >
+                    <div>
+                        <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Masterpiece</span>
+                        <h2 className="mt-4 text-4xl font-serif text-white">Unveiling The <br/> <span className="italic text-[#D4AF37]">Golden Root</span></h2>
+                    </div>
+                    
+                    <p className="text-gray-400 leading-loose text-lg">
+                        {heroProduct ? heroProduct.description : "Experience the scent that defines luxury. Orvella is not just a perfume; it is a statement of power and elegance. Infused with rare elements, it offers a long-lasting aura that captivates everyone around you."}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-6 border-y border-white/10 py-8">
+                        <div>
+                            <h4 className="text-white font-serif text-xl mb-2">Top Notes</h4>
+                            <p className="text-gray-500 text-sm">Saffron, Jasmine, Golden Amber</p>
+                        </div>
+                        <div>
+                            <h4 className="text-white font-serif text-xl mb-2">Base Notes</h4>
+                            <p className="text-gray-500 text-sm">Cedarwood, Musk, Rare Oud</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-8">
+                        <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct ? heroProduct.price : "0"}</div>
+                        <button 
+                            onClick={() => heroProduct && addToCart(heroProduct)}
+                            className="px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+                        >
+                            Add to Bag
+                        </button>
+                    </div>
+                </motion.div>
             </div>
-
-            {/* If we have more than 1 product (since 0 is hero), show them in a grid */}
-            {products.length > 1 ? (
-                <div className="grid md:grid-cols-2 gap-12">
-                   {products.slice(1).map((product, index) => (
-                      <motion.div 
-                        key={product._id}
-                        initial={{ opacity: 0, y: 50 }} 
-                        whileInView={{ opacity: 1, y: 0 }} 
-                        viewport={{ once: true }} 
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                        className="group relative bg-[#050505] border border-white/5 rounded-sm overflow-hidden hover:border-[#D4AF37]/50 transition-all duration-300"
-                      >
-                        {/* Image Area */}
-                        <div className="h-[400px] w-full overflow-hidden relative">
-                           <img 
-                               src={product.images[0]?.url || "/orvella.jpeg"} 
-                               alt={product.name} 
-                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                           />
-                           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
-                           
-                           {/* Price Tag */}
-                           <div className="absolute top-4 right-4 bg-[#D4AF37] text-black font-bold px-4 py-1 text-sm tracking-wider">
-                              ₹{product.price}
-                           </div>
-                        </div>
-
-                        {/* Content Area */}
-                        <div className="p-8">
-                           <h3 className="text-2xl font-serif text-white mb-3">{product.name}</h3>
-                           <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2">
-                             {product.description}
-                           </p>
-                           
-                           <button 
-                             onClick={() => addToCart(product)}
-                             className="w-full py-4 border border-white/10 text-white uppercase tracking-widest text-xs font-bold hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37] transition-all flex items-center justify-center gap-2"
-                           >
-                             Add to Cart <ArrowRight size={14} />
-                           </button>
-                        </div>
-                      </motion.div>
-                   ))}
-                </div>
-            ) : (
-                <div className="text-center text-gray-500 py-10">
-                   <p>More exclusive products dropping soon.</p>
-                </div>
-            )}
         </div>
       </section>
 
@@ -451,7 +444,7 @@ export default function Home() {
       </section>
 
       {/* --- 6. EXCLUSIVE OFFER --- */}
-      <section className="relative py-32 bg-[#121212] overflow-hidden">
+      <section id="offer" className="relative py-32 bg-[#121212] overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px]" />
         
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
@@ -477,7 +470,7 @@ export default function Home() {
                 <p className="mt-6 text-gray-400 max-w-lg mx-auto">
                     Use code <span className="text-white font-bold border-b border-[#D4AF37]">ORVELLA20</span> at checkout for an exclusive 20% discount on your first purchase.
                 </p>
-                <button className="mt-10 px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-colors">
+                <button onClick={() => heroProduct && addToCart(heroProduct)} className="mt-10 px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-colors">
                     Claim Offer
                 </button>
             </div>
@@ -504,8 +497,8 @@ export default function Home() {
                     <h4 className="text-white font-bold uppercase tracking-widest text-xs">Menu</h4>
                     <ul className="space-y-4 text-gray-500 text-sm">
                         <li><Link to="#" className="hover:text-[#D4AF37] transition-colors">Home</Link></li>
-                        <li><a href="#collection" className="hover:text-[#D4AF37] transition-colors">Collection</a></li>
-                        <li><a href="#story" className="hover:text-[#D4AF37] transition-colors">Our Story</a></li>
+                        <li><a href="#details" className="hover:text-[#D4AF37] transition-colors">The Scent</a></li>
+                        <li><a href="#offer" className="hover:text-[#D4AF37] transition-colors">Offer</a></li>
                         <li><Link to="#" className="hover:text-[#D4AF37] transition-colors">Contact</Link></li>
                     </ul>
                 </div>

@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import { 
   LayoutDashboard, ShoppingBag, Users, Settings, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, Plus, 
-  Mail, Menu, Loader2, Save, Edit, Trash2, Calendar
+  Mail, Menu, Loader2, Save, Edit, Trash2, Calendar, Star
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
@@ -33,11 +33,12 @@ export default function AdminDashboard() {
   const [isEditing, setIsEditing] = useState(false); 
   const [editProductId, setEditProductId] = useState(null); 
 
+  // Default set to Orvella context
   const [newProduct, setNewProduct] = useState({
     name: "",
     price: "",
     description: "",
-    category: "Perfume",
+    category: "Signature Scent", // Updated default
     stock: 0,
     imageUrl: "" 
   });
@@ -106,7 +107,7 @@ export default function AdminDashboard() {
   // --- PRODUCT ACTIONS ---
   const openCreateModal = () => {
       setIsEditing(false);
-      setNewProduct({ name: "", price: "", description: "", category: "Perfume", stock: 0, imageUrl: "" });
+      setNewProduct({ name: "", price: "", description: "", category: "Signature Scent", stock: 0, imageUrl: "" });
       setShowAddProduct(true);
   };
 
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteProduct = async (id) => {
-      if(!window.confirm("Are you sure you want to delete this product?")) return;
+      if(!window.confirm("Are you sure? This will remove the item from the store.")) return;
       try {
           await axios.delete(`${API_URL}/admin/product/${id}`, { withCredentials: true });
           setProducts(products.filter(p => p._id !== id));
@@ -228,8 +229,8 @@ export default function AdminDashboard() {
           {[
               { id: 'dashboard', icon: LayoutDashboard, label: 'Overview' },
               { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-              { id: 'inventory', icon: Package, label: 'Inventory' },
-              { id: 'customers', icon: Users, label: 'Customers' },
+              { id: 'inventory', icon: Package, label: 'Collection' }, // Renamed from Inventory
+              { id: 'customers', icon: Users, label: 'Clientele' }, // Renamed from Customers
               { id: 'settings', icon: Settings, label: 'Settings' },
           ].map(item => (
               <button 
@@ -249,7 +250,7 @@ export default function AdminDashboard() {
 
       <div className="p-4 border-t border-white/10 mt-auto">
           <Link to="/" className="flex items-center justify-center md:justify-start gap-2 text-sm text-gray-500 hover:text-[#D4AF37] transition-colors p-3 rounded hover:bg-white/5 border border-transparent hover:border-white/10">
-              <ArrowLeft size={16} /> <span className="font-medium">Back to Store</span>
+              <ArrowLeft size={16} /> <span className="font-medium">Back to Boutique</span>
           </Link>
       </div>
     </>
@@ -283,7 +284,7 @@ export default function AdminDashboard() {
 
       {/* --- DESKTOP SIDEBAR --- */}
       <aside className="hidden md:flex flex-col w-72 bg-[#121212] border-r border-white/10 h-screen sticky top-0 z-40">
-         <SidebarContent />
+          <SidebarContent />
       </aside>
 
       {/* --- MOBILE SIDEBAR (DRAWER) --- */}
@@ -317,7 +318,7 @@ export default function AdminDashboard() {
                 </button>
                 <div className="block">
                     <h2 className="text-lg md:text-xl font-serif text-white tracking-wide">
-                        {activeTab === 'dashboard' ? 'Overview' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                        {activeTab === 'dashboard' ? 'Overview' : activeTab === 'inventory' ? 'Collection' : activeTab === 'customers' ? 'Clientele' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                     </h2>
                 </div>
             </div>
@@ -395,7 +396,7 @@ export default function AdminDashboard() {
                                 trendUp={true} 
                             />
                             <StatCard 
-                                title="Active Customers" 
+                                title="Active Clientele" 
                                 value={customers.length} 
                                 icon={Users} 
                                 color="text-blue-400" 
@@ -496,8 +497,8 @@ export default function AdminDashboard() {
                                          <button 
                                             onClick={() => deleteOrder(order._id)}
                                             className="text-red-400 text-xs flex items-center gap-1 px-3 py-1.5 bg-red-500/10 rounded border border-red-500/20"
-                                        >
-                                            <Trash2 size={12} /> Delete
+                                         >
+                                             <Trash2 size={12} /> Delete
                                          </button>
                                     </div>
                                 </motion.div>
@@ -508,7 +509,7 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* 3. INVENTORY TAB - Mobile Optimized Grid */}
+                {/* 3. INVENTORY (COLLECTION) TAB - Mobile Optimized Grid */}
                 {activeTab === 'inventory' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {/* Add New Product Card */}
@@ -520,18 +521,27 @@ export default function AdminDashboard() {
                             <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">
                                 <Plus size={28} />
                             </div>
-                            <span className="font-serif text-lg">Add Product</span>
+                            <span className="font-serif text-lg">Add Edition</span>
                         </motion.div>
 
                         {products.map((product, idx) => (
                             <motion.div 
                                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
                                 key={product._id} 
-                                className="bg-[#121212] border border-white/10 rounded-xl overflow-hidden group flex flex-col"
+                                className={`bg-[#121212] border rounded-xl overflow-hidden group flex flex-col ${idx === 0 ? "border-[#D4AF37]/40 shadow-[0_0_20px_rgba(212,175,55,0.1)]" : "border-white/10"}`}
                             >
                                 <div className="h-48 bg-[#0a0a0a] relative p-4 flex items-center justify-center overflow-hidden">
                                     <img src={product.images && product.images[0]?.url ? product.images[0].url : "/placeholder.png"} alt={product.name} className="h-full object-contain relative z-0 group-hover:scale-110 transition-transform duration-500" />
                                     
+                                    {/* HERO Badge for First Product */}
+                                    {idx === 0 && (
+                                        <div className="absolute top-3 left-3 z-20">
+                                            <span className="bg-[#D4AF37] text-black text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                                                <Star size={10} fill="black" /> HERO PRODUCT
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {/* Stock Badge */}
                                     <div className="absolute top-3 right-3 z-20">
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md ${
@@ -549,7 +559,7 @@ export default function AdminDashboard() {
                                         <p className="text-xl font-bold text-white mt-2">₹{product.price}</p>
                                     </div>
                                     
-                                    {/* Mobile Friendly Actions (Visible always on mobile) */}
+                                    {/* Actions */}
                                     <div className="mt-4 pt-4 border-t border-white/5 flex gap-3">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); openEditModal(product); }}
@@ -570,7 +580,7 @@ export default function AdminDashboard() {
                       </div>
                 )}
 
-                {/* 4. CUSTOMERS TAB - Responsive */}
+                {/* 4. CUSTOMERS (CLIENTELE) TAB */}
                 {activeTab === 'customers' && (
                     <div className="space-y-4">
                         {/* Desktop Table */}
@@ -579,7 +589,7 @@ export default function AdminDashboard() {
                                 <table className="w-full text-left text-sm text-gray-400">
                                     <thead className="bg-[#1a1a1a] text-xs uppercase font-bold text-gray-300">
                                         <tr>
-                                            <th className="px-6 py-4">Customer</th>
+                                            <th className="px-6 py-4">Client</th>
                                             <th className="px-6 py-4">Contact</th>
                                             <th className="px-6 py-4">Role</th>
                                             <th className="px-6 py-4 text-right">Join Date</th>
@@ -651,7 +661,7 @@ export default function AdminDashboard() {
                 className="bg-[#121212] border-t md:border border-white/10 w-full md:max-w-lg md:rounded-xl rounded-t-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
              >
                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#121212] z-10 pb-2 border-b border-white/5">
-                    <h2 className="text-xl font-serif text-[#D4AF37]">{isEditing ? "Edit Product" : "New Product"}</h2>
+                    <h2 className="text-xl font-serif text-[#D4AF37]">{isEditing ? "Edit Edition" : "New Edition"}</h2>
                     <button onClick={() => setShowAddProduct(false)} className="bg-white/5 p-1 rounded-full text-gray-400 hover:text-white"><X size={20}/></button>
                 </div>
                 
@@ -671,6 +681,10 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div>
+                        <label className="text-xs uppercase text-gray-500 font-bold">Category (Edition)</label>
+                        <input type="text" value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
+                    </div>
+                    <div>
                         <label className="text-xs uppercase text-gray-500 font-bold">Description</label>
                         <textarea required value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1 h-24" />
                     </div>
@@ -680,7 +694,7 @@ export default function AdminDashboard() {
                     </div>
                     
                     <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded-lg hover:bg-white transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-[#D4AF37]/20">
-                        <Save size={18} /> {isEditing ? "Update Product" : "Create Product"}
+                        <Save size={18} /> {isEditing ? "Update Edition" : "Launch Edition"}
                     </button>
                 </form>
              </motion.div>

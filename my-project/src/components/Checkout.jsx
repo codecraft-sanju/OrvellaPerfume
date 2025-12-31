@@ -5,10 +5,10 @@ import { ArrowLeft, CreditCard, Truck, MapPin, CheckCircle, Loader2 } from "luci
 import { useShop } from "./ShopContext";
 
 export default function Checkout() {
-  // Context se loading (appLoading naam diya) bhi nikala hai taaki check kar sakein data aaya ya nahi
+  // Access Global Shop State
   const { cart, cartTotal, user, createOrder, loading: appLoading } = useShop();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false); // Ye local form submit loading hai
+  const [loading, setLoading] = useState(false); // Local loading state for form submission
 
   const [shippingInfo, setShippingInfo] = useState({
     address: "",
@@ -19,33 +19,38 @@ export default function Checkout() {
     phoneNo: ""
   });
 
-  // Redirect Logic with Loading Check
+  // --- REDIRECT LOGIC ---
   useEffect(() => {
-    // Agar app abhi user data fetch kar raha hai, toh redirect mat karo
+    // 1. Wait for global app loading to finish
     if (appLoading) return;
 
+    // 2. If cart is empty, go back to Home
     if (cart.length === 0) {
         navigate("/");
-    } else if (!user) {
-        // Sirf tab redirect karo jab loading khatam ho jaye aur user null ho
+    } 
+    // 3. If not logged in, go to Auth
+    else if (!user) {
         navigate("/auth");
     }
   }, [cart, user, navigate, appLoading]);
 
+  // --- HANDLE SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Call Context Function
+    // Call the centralized order creation logic in Context
     await createOrder(shippingInfo, navigate);
     setLoading(false);
   };
 
-  // Calculations
+  // --- CALCULATIONS ---
+  // 18% Luxury Tax/GST
   const taxPrice = cartTotal * 0.18;
-  const shippingPrice = cartTotal > 5000 ? 0 : 200;
+  // Free shipping for single luxury item (usually > 5000), else 200
+  const shippingPrice = cartTotal > 5000 ? 0 : 200; 
   const finalTotal = cartTotal + taxPrice + shippingPrice;
 
-  // Agar global data load ho raha hai, toh spinner dikhao taaki blank screen/redirect glitch na ho
+  // --- LOADING SPINNER (PRE-RENDER) ---
   if (appLoading) {
     return (
         <div className="min-h-screen bg-[#050505] flex justify-center items-center">
@@ -62,15 +67,15 @@ export default function Checkout() {
         className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16"
       >
         
-        {/* LEFT COLUMN: FORM */}
+        {/* --- LEFT COLUMN: SHIPPING FORM --- */}
         <div className="space-y-8">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-[#D4AF37] transition-colors">
-                <ArrowLeft size={18} /> Back to Bag
+            <button onClick={() => navigate("/")} className="flex items-center gap-2 text-gray-500 hover:text-[#D4AF37] transition-colors group">
+                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform"/> Return to The Scent
             </button>
             
             <div>
-                <h1 className="text-3xl md:text-4xl font-serif text-white mb-2">Checkout</h1>
-                <p className="text-gray-500">Secure delivery details for your collection.</p>
+                <h1 className="text-3xl md:text-4xl font-serif text-white mb-2">Secure Checkout</h1>
+                <p className="text-gray-500">Enter delivery details for your Orvella Edition.</p>
             </div>
 
             <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
@@ -123,23 +128,34 @@ export default function Checkout() {
             </form>
         </div>
 
-        {/* RIGHT COLUMN: SUMMARY */}
+        {/* --- RIGHT COLUMN: ORDER SUMMARY --- */}
         <div className="bg-[#121212] p-8 md:p-12 rounded-xl border border-white/5 h-fit lg:sticky lg:top-8">
-            <h2 className="text-xl font-serif text-white mb-8 border-b border-white/10 pb-4">Order Summary</h2>
+            <h2 className="text-xl font-serif text-white mb-8 border-b border-white/10 pb-4">Your Selection</h2>
             
+            {/* Cart Items List */}
             <div className="space-y-6 mb-8 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {cart.map(item => (
-                    <div key={item._id} className="flex gap-4">
-                        <img src={item.images[0].url} alt={item.name} className="w-16 h-16 object-cover rounded bg-[#050505]" />
+                    <div key={item._id} className="flex gap-4 items-center">
+                        <div className="w-16 h-16 bg-[#050505] rounded flex items-center justify-center border border-white/5">
+                             <img 
+                                src={item.images && item.images[0] ? item.images[0].url : "/orvella.jpeg"} 
+                                alt={item.name} 
+                                className="h-full object-contain p-1" 
+                             />
+                        </div>
                         <div className="flex-1">
-                            <h4 className="font-serif text-white">{item.name}</h4>
+                            <h4 className="font-serif text-white text-lg">{item.name}</h4>
+                            <p className="text-[#D4AF37] text-xs uppercase tracking-wider">Premium Edition</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-white font-bold">₹{item.price * item.qty}</p>
                             <p className="text-gray-500 text-sm">Qty: {item.qty}</p>
                         </div>
-                        <p className="text-[#D4AF37] font-bold">₹{item.price * item.qty}</p>
                     </div>
                 ))}
             </div>
 
+            {/* Price Breakdown */}
             <div className="space-y-3 border-t border-white/10 pt-6 text-sm">
                 <div className="flex justify-between text-gray-400">
                     <span>Subtotal</span>
@@ -151,7 +167,9 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-gray-400">
                     <span>Shipping</span>
-                    <span>{shippingPrice === 0 ? "Free" : `₹${shippingPrice}`}</span>
+                    <span className={shippingPrice === 0 ? "text-[#D4AF37]" : ""}>
+                        {shippingPrice === 0 ? "Complimentary" : `₹${shippingPrice}`}
+                    </span>
                 </div>
                 <div className="flex justify-between text-white text-xl font-serif pt-4 border-t border-white/10 mt-4">
                     <span>Total</span>
@@ -159,15 +177,17 @@ export default function Checkout() {
                 </div>
             </div>
 
+            {/* Submit Button */}
             <button 
                 form="checkout-form"
                 disabled={loading}
-                className="w-full mt-8 bg-[#D4AF37] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-all duration-300 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-8 bg-[#D4AF37] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-all duration-300 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(212,175,55,0.2)]"
             >
                 {loading ? <Loader2 className="animate-spin" /> : <CreditCard size={18} />}
                 {loading ? "Processing..." : "Confirm Order"}
             </button>
 
+            {/* Trust Badges */}
             <div className="flex justify-center gap-6 mt-6 text-gray-600">
                 <div className="flex items-center gap-2 text-xs uppercase"><Truck size={14}/> Fast Delivery</div>
                 <div className="flex items-center gap-2 text-xs uppercase"><CheckCircle size={14}/> Secure Payment</div>
