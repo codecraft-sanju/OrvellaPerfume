@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Settings, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, Plus, 
   MapPin, Mail, Menu, MoreVertical, Filter, Download, ChevronRight, Loader2,
-  Save, Upload // Added icons for the modal
+  Save, Upload 
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
@@ -110,7 +110,6 @@ export default function AdminDashboard() {
       const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
       
       // Formatting data for Backend Schema
-      // Note: Backend expects images array with objects
       const productData = {
         ...newProduct,
         images: [{ public_id: "manual_entry_" + Date.now(), url: newProduct.imageUrl }]
@@ -157,6 +156,28 @@ export default function AdminDashboard() {
         } catch (error) {
             showNotification("Failed to delete order");
         }
+    }
+  };
+
+  // --- NEW: UPDATE USER ROLE ---
+  const updateUserRole = async (userId, newRole) => {
+    if(!window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return;
+
+    try {
+        const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
+        
+        // Call Backend API
+        await axios.put(`${API_URL}/admin/user/${userId}`, { role: newRole }, config);
+
+        // Update UI
+        setCustomers(customers.map(user => 
+            user._id === userId ? { ...user, role: newRole } : user
+        ));
+        
+        showNotification(`User role updated to ${newRole}`);
+    } catch (error) {
+        console.error(error);
+        showNotification(error.response?.data?.message || "Failed to update role");
     }
   };
 
@@ -501,7 +522,7 @@ export default function AdminDashboard() {
                       </div>
                 )}
 
-                {/* 4. CUSTOMERS TAB */}
+                {/* 4. CUSTOMERS TAB - UPDATED WITH ROLE CHANGE */}
                 {activeTab === 'customers' && (
                     <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                         <div className="overflow-x-auto">
@@ -537,11 +558,18 @@ export default function AdminDashboard() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded border ${
-                                                    customer.role === 'admin' ? 'bg-purple-500/10 border-purple-500/30 text-purple-300' : 'bg-gray-400/10 border-gray-400/30 text-gray-300'
-                                                }`}>
-                                                    {customer.role}
-                                                </span>
+                                                <select
+                                                    value={customer.role}
+                                                    onChange={(e) => updateUserRole(customer._id, e.target.value)}
+                                                    className={`text-[10px] font-bold uppercase px-3 py-1.5 rounded border outline-none cursor-pointer transition-all duration-300 appearance-none ${
+                                                        customer.role === 'admin' 
+                                                        ? 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20' 
+                                                        : 'bg-gray-400/10 border-gray-400/30 text-gray-300 hover:bg-gray-400/20'
+                                                    }`}
+                                                >
+                                                    <option value="user" className="bg-[#121212] text-gray-400 font-sans">USER</option>
+                                                    <option value="admin" className="bg-[#121212] text-purple-400 font-bold font-sans">ADMIN</option>
+                                                </select>
                                             </td>
                                             <td className="px-6 py-4 text-right text-white font-mono">
                                                 {new Date(customer.createdAt).toLocaleDateString()}

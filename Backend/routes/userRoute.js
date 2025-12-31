@@ -4,7 +4,8 @@ const {
     loginUser, 
     logout, 
     getUserProfile, 
-    getAllUsers // <--- Added this import
+    getAllUsers ,// <--- Added this import
+    updateUserRole
 } = require("../controllers/authController");
 const { isAuthenticatedUser, authorizeRoles } = require("../middleware/auth");
 
@@ -17,5 +18,6 @@ router.route("/me").get(isAuthenticatedUser, getUserProfile);
 
 // Admin route to get all users
 router.route("/admin/users").get(isAuthenticatedUser, authorizeRoles("admin"), getAllUsers);
+router.route('/admin/user/:id').put(isAuthenticatedUser, authorizeRoles('admin'), updateUserRole);
 
 module.exports = router;

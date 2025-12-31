@@ -24,11 +24,9 @@ const sendToken = (user, statusCode, res) => {
     expires: new Date(
       Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
     ),
-    httpOnly: true, // Prevents client-side JS from reading the cookie (Security)
-    
-    // 🔥 CRITICAL FIX FOR VERCEL + RENDER DEPLOYMENT 🔥
-    secure: true,       // Hamesha true rakhein (Render HTTPS use karta hai)
-    sameSite: 'none',   // Cross-site requests allow karne ke liye zaroori hai
+    httpOnly: true, 
+    secure: true,      // Production ready (Vercel/Render)
+    sameSite: 'none',  
   };
 
   res.status(statusCode).cookie('token', token, options).json({
@@ -57,7 +55,7 @@ exports.registerUser = async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      avatar: "https://ui-avatars.com/api/?name=" + name + "&background=D4AF37&color=000", // Gold avatar default
+      avatar: "https://ui-avatars.com/api/?name=" + name + "&background=D4AF37&color=000",
     });
 
     sendToken(user, 201, res);
@@ -76,14 +74,12 @@ exports.loginUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Please enter email and password" });
     }
 
-    // Find user & select password (since it's usually excluded)
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -99,12 +95,11 @@ exports.loginUser = async (req, res, next) => {
 // @desc    Logout user
 // @route   GET /api/v1/logout
 exports.logout = async (req, res, next) => {
-  // Logout karte waqt bhi same options hone chahiye taaki cookie clear ho sake
   res.cookie('token', null, {
     expires: new Date(Date.now()),
     httpOnly: true,
-    secure: true,     // Added for consistency
-    sameSite: 'none'  // Added for consistency
+    secure: true,    
+    sameSite: 'none'  
   });
 
   res.status(200).json({
@@ -117,7 +112,6 @@ exports.logout = async (req, res, next) => {
 // @route   GET /api/v1/me
 exports.getUserProfile = async (req, res, next) => {
   try {
-    // req.user is populated by isAuthenticatedUser middleware
     const user = await User.findById(req.user.id);
     res.status(200).json({
       success: true,
@@ -126,4 +120,41 @@ exports.getUserProfile = async (req, res, next) => {
   } catch (error) {
       res.status(500).json({ success: false, message: error.message });
   }
+};
+
+// ---------------------------------------------------
+// 👇 NEW FUNCTION ADDED FOR ADMIN PANEL ROLE UPDATE 👇
+// ---------------------------------------------------
+
+// @desc    Update User Role (Admin Only)
+// @route   PUT /api/v1/admin/user/:id
+exports.updateUserRole = async (req, res, next) => {
+    try {
+        const newRole = req.body.role;
+
+        // Validation
+        if (!newRole) {
+            return res.status(400).json({ success: false, message: "Role is required" });
+        }
+
+        const user = await User.findByIdAndUpdate(req.params.id, {
+            role: newRole
+        }, {
+            new: true,        // Return the updated user
+            runValidators: true // Schema validation
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `User role updated to ${newRole}`,
+            user
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
