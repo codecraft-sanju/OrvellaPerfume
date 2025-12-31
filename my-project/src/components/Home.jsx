@@ -487,8 +487,12 @@ export default function Home() {
               )}
             </button>
             
-            <button className="md:hidden text-white hover:text-[#D4AF37] transition-colors" onClick={() => setMobileMenuOpen(true)}>
-              <Menu size={24} />
+            {/* 🔥 UPDATED MOBILE TOGGLE: HAMBURGER BECOMES X */}
+            <button 
+              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[150] relative" 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
@@ -501,13 +505,12 @@ export default function Home() {
               className="fixed inset-0 bg-[#050505] z-[100] flex flex-col justify-center px-8 md:hidden"
             >
               <NoiseOverlay />
-              <button onClick={() => setMobileMenuOpen(false)} className="absolute top-8 right-8 text-[#D4AF37] p-2 hover:rotate-90 transition-transform duration-500 z-50">
-                <X size={32} />
-              </button>
+              
+              {/* NOTE: Close button removed as requested. Navbar toggle handles it. */}
               
               <div className="space-y-8 relative z-10">
                 {[
-                  { l: "Home", action: () => window.scrollTo({top:0, behavior:'smooth'}) },
+                  { l: "Home", action: () => { window.scrollTo({top:0, behavior:'smooth'}); setMobileMenuOpen(false); } },
                   { l: "The Scent", action: () => scrollToSection('details') },
                   { l: "Offers", action: () => scrollToSection('offer') },
                 ].map((item, i) => (
@@ -525,7 +528,7 @@ export default function Home() {
                   {user ? (
                       <div className="space-y-4">
                         <p className="text-[#D4AF37] text-xl font-serif">Welcome, {user.name}</p>
-                        {user.role === 'admin' && <Link to="/admin" className="block text-white">Admin Dashboard</Link>}
+                        {user.role === 'admin' && <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-white">Admin Dashboard</Link>}
                         <button onClick={() => {logout(); setMobileMenuOpen(false);}} className="text-red-500 text-lg">Logout</button>
                       </div>
                   ) : (
