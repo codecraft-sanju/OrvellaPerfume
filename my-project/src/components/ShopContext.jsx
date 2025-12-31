@@ -146,7 +146,7 @@ export const ShopProvider = ({ children }) => {
         products, loading, cart, isCartOpen, setIsCartOpen,
         addToCart, removeFromCart, updateQty, cartTotal, cartCount,
         notification, showNotification, user, logout, manualLogin,
-        createOrder // Exposed to components
+        createOrder 
       }}
     >
       {children}

@@ -8,7 +8,7 @@ import {
   useSpring
 } from "framer-motion";
 import { 
-  ShoppingBag, Menu, X, Star, ShieldCheck, Truck, ArrowRight, 
+  ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
   Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut
 } from "lucide-react";
 
@@ -72,13 +72,30 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // --- HARDCODED REAL PRODUCT (DEFAULT) ---
+  // Agar database empty hai, toh yeh REAL product use hoga.
+  const DEFAULT_PRODUCT = {
+    _id: "orvella-golden-root-main", // Static ID for cart logic
+    name: "Orvella The Golden Root",
+    price: 5999, // Aapka real price yahan set karein
+    description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
+    images: [{ url: "/orvella.jpeg" }], // Ensure this image exists in public folder
+    category: "Signature Scent",
+    stock: 100, // Available stock
+    tag: "Premium Edition"
+  };
+
+  // Determine Hero Product: 
+  // Agar DB me product hai toh wo use karo, warna DEFAULT_PRODUCT use karo.
+  const heroProduct = products.length > 0 ? products[0] : DEFAULT_PRODUCT;
+
   // --- LOGIC: Handle Buy Action ---
-  // Ye function item ko cart me dalega aur turant drawer open karega
   const handleBuy = (product) => {
+    console.log("Adding to cart:", product); 
     if (product) {
       addToCart(product);
-      setIsCartOpen(true); // Open cart immediately for feedback
-      setSelectedProduct(null); // Close modal if open
+      setIsCartOpen(true); // Open cart immediately
+      setSelectedProduct(null); // Close modal
     }
   };
 
@@ -110,9 +127,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // Determine Hero Product (The ONLY product - Orvella)
-  const heroProduct = products.length > 0 ? products[0] : null;
 
   return (
     <main className="min-h-screen bg-[#050505] text-[#E0E0E0] font-sans selection:bg-[#D4AF37] selection:text-black overflow-x-hidden">
@@ -228,7 +242,7 @@ export default function Home() {
               </div>
               <div className="p-10 flex flex-col justify-center">
                 <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><X /></button>
-                <span className="text-[#D4AF37] uppercase tracking-widest text-xs font-bold mb-2">{selectedProduct.tag || "Exclusive"}</span>
+                <span className="text-[#D4AF37] uppercase tracking-widest text-xs font-bold mb-2">{selectedProduct.tag || "Premium Edition"}</span>
                 <h2 className="text-4xl font-serif text-white mb-4">{selectedProduct.name}</h2>
                 <p className="text-gray-400 leading-relaxed mb-8">{selectedProduct.description}</p>
                 <div className="text-2xl text-[#D4AF37] font-serif mb-8">₹{selectedProduct.price}</div>
@@ -327,27 +341,28 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center w-full">
           <motion.div 
             initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.2 }}
-            className="space-y-6 text-center md:text-left z-10"
+            className="space-y-6 text-center md:text-left z-10 text-white"
+            style={{ zIndex: 30 }}
           >
             <span className="text-[#D4AF37] tracking-[0.4em] text-xs md:text-sm uppercase font-bold">Premium Edition</span>
             
             {/* Dynamic Hero Text */}
             <h1 className="text-5xl md:text-8xl font-serif font-bold text-white leading-[1.1]">
-              {heroProduct ? heroProduct.name.split(' ')[0] : "The Golden"} <br/> 
+              The Golden <br/> 
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] italic">
-                 {heroProduct ? heroProduct.name.split(' ').slice(1).join(' ') : "Root"}
+                 Root
               </span>
             </h1>
             
             <p className="text-gray-400 text-lg max-w-lg mx-auto md:mx-0 font-light leading-relaxed">
-              {heroProduct ? heroProduct.description : "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention."}
+              {heroProduct.description}
             </p>
             
             <div className="pt-6 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
               {/* PRIMARY ACTION BUTTON */}
               <button 
                 onClick={() => handleBuy(heroProduct)} 
-                className="px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-300"
+                className="px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-300 relative z-50 cursor-pointer"
               >
                 Shop Now
               </button>
@@ -357,7 +372,7 @@ export default function Home() {
                 onClick={() => {
                    if(heroProduct) setSelectedProduct(heroProduct);
                 }} 
-                className="px-10 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all duration-300"
+                className="px-10 py-4 border border-white/20 text-white font-bold uppercase tracking-widest hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all duration-300 relative z-50 cursor-pointer"
               >
                 View Notes
               </button>
@@ -372,11 +387,11 @@ export default function Home() {
              <TiltCard>
                 <motion.img 
                   style={{ z: 50 }}
-                  src={heroProduct && heroProduct.images[0] ? heroProduct.images[0].url : "/orvella.jpeg"} 
+                  src={heroProduct.images[0].url} 
                   alt="Orvella Perfume Bottle" 
                   className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.25)]"
                   // Clicking image opens details
-                  onClick={() => heroProduct && setSelectedProduct(heroProduct)}
+                  onClick={() => handleBuy(heroProduct)}
                 />
              </TiltCard>
           </motion.div>
@@ -411,7 +426,7 @@ export default function Home() {
                     <div className="absolute top-4 left-4 border-t border-l border-[#D4AF37] w-8 h-8"/>
                     <div className="absolute bottom-4 right-4 border-b border-r border-[#D4AF37] w-8 h-8"/>
                     <img 
-                       src={heroProduct && heroProduct.images[0] ? heroProduct.images[0].url : "/orvella2.jpeg"} 
+                       src={heroProduct.images[0].url} 
                        alt="Orvella Detail" 
                        className="w-full h-auto object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
                     />
@@ -430,7 +445,7 @@ export default function Home() {
                     </div>
                     
                     <p className="text-gray-400 leading-loose text-lg">
-                        {heroProduct ? heroProduct.description : "Experience the scent that defines luxury. Orvella is not just a perfume; it is a statement of power and elegance. Infused with rare elements, it offers a long-lasting aura that captivates everyone around you."}
+                        {heroProduct.description}
                     </p>
 
                     <div className="grid grid-cols-2 gap-6 border-y border-white/10 py-8">
@@ -445,7 +460,7 @@ export default function Home() {
                     </div>
 
                     <div className="flex items-center gap-8">
-                        <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct ? heroProduct.price : "0"}</div>
+                        <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
                         {/* BUY BUTTON */}
                         <button 
                             onClick={() => handleBuy(heroProduct)}
