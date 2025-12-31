@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // --- SIBLING IMPORT ---
-import { useShop } from "../context/ShopContext"; 
+import { useShop } from "./ShopContext"; 
 
 // ==========================================
 // 1. COMPONENT: CINEMATIC NOISE OVERLAY
