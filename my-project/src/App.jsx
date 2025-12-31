@@ -9,6 +9,7 @@ import { ShopProvider } from './components/ShopContext';
 import Home from './components/Home';
 import AdminDashboard from './components/AdminDashboard';
 import AuthPage from './components/AuthPage'; 
+import OrderSuccess from './components/OrderSuccess';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           
           {/* Admin Dashboard Route (Ideally protected, but open for now) */}
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/success" element={<OrderSuccess />} />
         </Routes>
       </Router>
     </ShopProvider>

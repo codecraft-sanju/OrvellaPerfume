@@ -167,7 +167,14 @@ export default function Home() {
                   <span>Subtotal</span>
                   <span className="text-[#D4AF37]">₹{cartTotal.toLocaleString()}</span>
                 </div>
-                <button className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors">
+                {/* --- UPDATED CHECKOUT BUTTON --- */}
+                <button 
+                  onClick={() => {
+                    setIsCartOpen(false); // Close drawer
+                    navigate("/checkout"); // Go to checkout page
+                  }}
+                  className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
+                >
                   Checkout Now
                 </button>
               </div>
@@ -387,7 +394,7 @@ export default function Home() {
                     <div>
                         <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Collection</span>
                         <h2 className="mt-4 text-4xl md:text-5xl font-serif text-white leading-tight">
-                         Discover <span className="italic text-[#D4AF37]">{products[1].name}</span>
+                          Discover <span className="italic text-[#D4AF37]">{products[1].name}</span>
                         </h2>
                     </div>
                     <p className="text-gray-400 leading-relaxed text-lg font-light">

@@ -1,57 +1,49 @@
-// components/ShopContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const ShopContext = createContext();
 
 export const useShop = () => useContext(ShopContext);
 
-// --- API CONFIGURATION ---
-// .env se URL le rahe hain. Agar .env load nahi hua toh localhost fallback use karega.
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const API_URL = `${BACKEND_URL}/api/v1`;
 
 export const ShopProvider = ({ children }) => {
-  const [products, setProducts] = useState([]); // Now using Real Data
+  const [products, setProducts] = useState([]); 
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [user, setUser] = useState(null); // Real User State
+  const [user, setUser] = useState(null); 
   const [loading, setLoading] = useState(true);
 
-  // --- 1. FETCH DATA ON LOAD ---
-  // This runs once when the app starts
+  // --- LOAD DATA ---
   useEffect(() => {
     const loadData = async () => {
       try {
-        // A. Fetch Real Products from Database
         const { data: productData } = await axios.get(`${API_URL}/products`);
         setProducts(productData.products);
 
-        // B. Check if User is Logged In (Verify Cookie)
         try {
             const { data: userData } = await axios.get(`${API_URL}/me`, { withCredentials: true });
             setUser(userData.user);
         } catch (authError) {
-            // User is not logged in, which is fine for a guest
             setUser(null);
         }
 
       } catch (error) {
         console.error("Error loading shop data:", error);
-        showNotification("Server is sleeping. Please wake it up!");
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
   // --- CART ACTIONS ---
   const addToCart = (product) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id); // Note: MongoDB uses _id, not id
+      const existing = prev.find((item) => item._id === product._id);
       if (existing) {
         return prev.map((item) =>
           item._id === product._id ? { ...item, qty: item.qty + 1 } : item
@@ -70,35 +62,76 @@ export const ShopProvider = ({ children }) => {
   const updateQty = (id, delta) => {
     setCart((prev) =>
       prev.map((item) => {
-        if (item._id === id) {
-          return { ...item, qty: Math.max(1, item.qty + delta) };
-        }
+        if (item._id === id) return { ...item, qty: Math.max(1, item.qty + delta) };
         return item;
       })
     );
   };
 
+  // --- CHECKOUT LOGIC (NEW) ---
+  const createOrder = async (shippingInfo, navigate) => {
+    if (!user) {
+        showNotification("Please login to place an order");
+        navigate("/auth");
+        return;
+    }
+
+    try {
+        const orderItems = cart.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.qty,
+            image: item.images[0].url,
+            product: item._id
+        }));
+
+        const itemsPrice = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+        const taxPrice = itemsPrice * 0.18; // Example 18% GST
+        const shippingPrice = itemsPrice > 5000 ? 0 : 200;
+        const totalPrice = itemsPrice + taxPrice + shippingPrice;
+
+        const orderData = {
+            shippingInfo,
+            orderItems,
+            paymentInfo: {
+                id: "sample_payment_id_" + Date.now(),
+                status: "succeeded" // Simulating successful payment
+            },
+            itemsPrice,
+            taxPrice,
+            shippingPrice,
+            totalPrice
+        };
+
+        const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
+        
+        // Send to Backend
+        await axios.post(`${API_URL}/order/new`, orderData, config);
+
+        // Success
+        setCart([]); // Clear Cart
+        setIsCartOpen(false);
+        navigate("/success"); // Go to success page
+        
+    } catch (error) {
+        console.error("Order Failed", error);
+        showNotification(error.response?.data?.message || "Order Failed");
+    }
+  };
+
   // --- AUTH ACTIONS ---
-  // Login is handled in AuthPage.jsx, but Logout is global
   const logout = async () => {
       try {
           await axios.get(`${API_URL}/logout`, { withCredentials: true });
           setUser(null);
           showNotification("Logged out successfully");
-          // Optional: Clear cart on logout
-          // setCart([]); 
       } catch (error) {
           console.error("Logout failed", error);
-          showNotification("Logout failed");
       }
   };
 
-  // Helper to manually update user (used by AuthPage after successful login)
-  const manualLogin = (userData) => {
-      setUser(userData);
-  };
+  const manualLogin = (userData) => { setUser(userData); };
 
-  // Toast Notification Logic
   const showNotification = (msg) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
@@ -110,21 +143,10 @@ export const ShopProvider = ({ children }) => {
   return (
     <ShopContext.Provider
       value={{
-        products,
-        loading,
-        cart,
-        isCartOpen,
-        setIsCartOpen,
-        addToCart,
-        removeFromCart,
-        updateQty,
-        cartTotal,
-        cartCount,
-        notification,
-        showNotification,
-        user,
-        logout,
-        manualLogin // Exported so AuthPage can update state instantly
+        products, loading, cart, isCartOpen, setIsCartOpen,
+        addToCart, removeFromCart, updateQty, cartTotal, cartCount,
+        notification, showNotification, user, logout, manualLogin,
+        createOrder // Exposed to components
       }}
     >
       {children}
