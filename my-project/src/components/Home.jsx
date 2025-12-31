@@ -715,18 +715,7 @@ export default function Home() {
                       </p>
                     </RevealOnScroll>
 
-                    <RevealOnScroll delay={0.4}>
-                      <div className="grid grid-cols-2 gap-8 border-y border-white/5 py-10">
-                          <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
-                              <h4 className="text-white font-serif text-2xl mb-2">Top Notes</h4>
-                              <p className="text-gray-500 text-sm tracking-wide">Saffron, Jasmine, Golden Amber</p>
-                          </div>
-                          <div className="hover:pl-4 transition-all duration-300 border-l border-transparent hover:border-[#D4AF37]">
-                              <h4 className="text-white font-serif text-2xl mb-2">Base Notes</h4>
-                              <p className="text-gray-500 text-sm tracking-wide">Cedarwood, Musk, Rare Oud</p>
-                          </div>
-                      </div>
-                    </RevealOnScroll>
+                    {/* NOTES SECTION REMOVED HERE AS REQUESTED */}
 
                     <RevealOnScroll delay={0.5}>
                       <div className="flex flex-col md:flex-row items-center gap-8 pt-4">
