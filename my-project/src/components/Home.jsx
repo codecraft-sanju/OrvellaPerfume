@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // --- SIBLING IMPORT ---
-import { useShop } from "./ShopContext"; 
+import { useShop } from "../context/ShopContext"; 
 
 // ==========================================
 // 1. COMPONENT: CINEMATIC NOISE OVERLAY
@@ -66,28 +66,45 @@ const CustomCursor = () => {
 };
 
 // ==========================================
-// 3. COMPONENT: ANIMATED TITLE (Staggered)
+// 3. COMPONENT: ANIMATED TITLE (FIXED FOR RESPONSIVE WRAPPING)
 // ==========================================
 const AnimatedTitle = ({ text, className }) => {
-  const letters = Array.from(text);
+  // Split text into words to prevent breaking words like "Golden" into "Gold-en"
+  const words = text.split(" ");
+
   const container = {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
-      transition: { staggerChildren: 0.03, delayChildren: 0.04 * i },
+      transition: { staggerChildren: 0.12, delayChildren: 0.04 * i },
     }),
   };
+
   const child = {
     visible: { opacity: 1, y: 0, transition: { type: "spring", damping: 12, stiffness: 100 } },
     hidden: { opacity: 0, y: 50, transition: { type: "spring", damping: 12, stiffness: 100 } },
   };
 
   return (
-    <motion.h1 variants={container} initial="hidden" animate="visible" className={`flex flex-wrap overflow-hidden ${className}`}>
-      {letters.map((letter, index) => (
-        <motion.span variants={child} key={index}>
-          {letter === " " ? "\u00A0" : letter}
-        </motion.span>
+    <motion.h1 
+      variants={container} 
+      initial="hidden" 
+      animate="visible" 
+      className={`flex flex-wrap ${className}`} // Removed overflow-hidden to allow layout flow
+    >
+      {words.map((word, index) => (
+        // Word Wrapper: whitespace-nowrap ensures the word stays together
+        <motion.div 
+          key={index} 
+          className="inline-block whitespace-nowrap mr-[0.25em] last:mr-0"
+          variants={container} // Apply stagger to letters inside the word
+        >
+          {Array.from(word).map((letter, i) => (
+            <motion.span variants={child} key={i} className="inline-block">
+              {letter}
+            </motion.span>
+          ))}
+        </motion.div>
       ))}
     </motion.h1>
   );
