@@ -5,9 +5,10 @@ import { ArrowLeft, CreditCard, Truck, MapPin, CheckCircle, Loader2 } from "luci
 import { useShop } from "./ShopContext";
 
 export default function Checkout() {
-  const { cart, cartTotal, user, createOrder } = useShop();
+  // Context se loading (appLoading naam diya) bhi nikala hai taaki check kar sakein data aaya ya nahi
+  const { cart, cartTotal, user, createOrder, loading: appLoading } = useShop();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Ye local form submit loading hai
 
   const [shippingInfo, setShippingInfo] = useState({
     address: "",
@@ -18,11 +19,18 @@ export default function Checkout() {
     phoneNo: ""
   });
 
-  // Redirect if cart is empty or user not logged in
+  // Redirect Logic with Loading Check
   useEffect(() => {
-    if (cart.length === 0) navigate("/");
-    if (!user) navigate("/auth");
-  }, [cart, user, navigate]);
+    // Agar app abhi user data fetch kar raha hai, toh redirect mat karo
+    if (appLoading) return;
+
+    if (cart.length === 0) {
+        navigate("/");
+    } else if (!user) {
+        // Sirf tab redirect karo jab loading khatam ho jaye aur user null ho
+        navigate("/auth");
+    }
+  }, [cart, user, navigate, appLoading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +44,15 @@ export default function Checkout() {
   const taxPrice = cartTotal * 0.18;
   const shippingPrice = cartTotal > 5000 ? 0 : 200;
   const finalTotal = cartTotal + taxPrice + shippingPrice;
+
+  // Agar global data load ho raha hai, toh spinner dikhao taaki blank screen/redirect glitch na ho
+  if (appLoading) {
+    return (
+        <div className="min-h-screen bg-[#050505] flex justify-center items-center">
+            <Loader2 className="animate-spin text-[#D4AF37]" size={40} />
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-[#E0E0E0] font-sans selection:bg-[#D4AF37] selection:text-black flex justify-center items-center p-4 md:p-8">
