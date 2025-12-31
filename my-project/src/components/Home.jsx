@@ -276,7 +276,6 @@ export default function Home() {
     }
 
     // 2. Handle Browser Back Button (Mobile/Desktop)
-    // If a modal is open, back button should close modal, not leave page.
     const handlePopState = (event) => {
         if (showOrderSuccess) {
             event.preventDefault();
@@ -291,7 +290,6 @@ export default function Home() {
     };
 
     if (showOrderSuccess || selectedProduct || mobileMenuOpen) {
-        // Push a dummy state so the back button has something to pop
         window.history.pushState(null, null, window.location.pathname);
         window.addEventListener('popstate', handlePopState);
     }
@@ -512,7 +510,12 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <nav 
         className={`fixed w-full z-50 top-0 transition-all duration-500 ${
-          isScrolled ? "bg-[#050505]/80 backdrop-blur-lg border-b border-white/5 py-4" : "bg-transparent py-8"
+          // SIBLING LOGIC FIX: If menu is open, stay transparent to avoid glassmorphism overlap with black menu
+          mobileMenuOpen 
+            ? "bg-transparent py-4" 
+            : isScrolled 
+              ? "bg-[#050505]/80 backdrop-blur-lg border-b border-white/5 py-4" 
+              : "bg-transparent py-8"
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
