@@ -367,58 +367,65 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 4. PRODUCT SHOWCASE (Collection) --- */}
+      {/* --- 4. PRODUCT SHOWCASE (Collection - DYNAMIC GRID) --- */}
       <section id="collection" className="py-24 bg-[#121212]">
         <div className="max-w-7xl mx-auto px-6">
             
-            {/* If we have more than 1 product, show the second one here */}
-            {products.length > 1 && (
-                <div className="grid md:grid-cols-2 gap-16 items-center">
-                    <motion.div 
-                    initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}
-                    className="relative h-[500px] md:h-[700px] w-full rounded-sm overflow-hidden border border-white/5 bg-[#050505] group"
-                    >
-                    <img 
-                        src={products[1].images[0]?.url || "/orvella2.jpeg"} 
-                        alt={products[1].name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute bottom-8 left-8 text-white">
-                        <p className="text-[#D4AF37] uppercase text-xs tracking-widest mb-2">New Arrival</p>
-                        <h3 className="text-2xl font-serif">{products[1].name}</h3>
-                    </div>
-                    </motion.div>
+            <div className="text-center mb-16">
+                 <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Collection</span>
+                 <h2 className="mt-4 text-4xl md:text-5xl font-serif text-white leading-tight">
+                   Exclusive <span className="italic text-[#D4AF37]">Arrivals</span>
+                 </h2>
+            </div>
 
-                    <div className="space-y-10">
-                    <div>
-                        <span className="text-[#D4AF37] uppercase tracking-[0.3em] font-bold text-sm">The Collection</span>
-                        <h2 className="mt-4 text-4xl md:text-5xl font-serif text-white leading-tight">
-                          Discover <span className="italic text-[#D4AF37]">{products[1].name}</span>
-                        </h2>
-                    </div>
-                    <p className="text-gray-400 leading-relaxed text-lg font-light">
-                        {products[1].description}
-                    </p>
-                    
-                    <div className="pt-6">
-                        <button 
-                        onClick={() => addToCart(products[1])}
-                        className="w-full md:w-auto px-12 py-5 bg-transparent border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300 uppercase tracking-widest font-bold flex items-center justify-center gap-4 group"
-                        >
-                        Add to Cart - ₹{products[1].price}
-                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
-                    </div>
+            {/* If we have more than 1 product (since 0 is hero), show them in a grid */}
+            {products.length > 1 ? (
+                <div className="grid md:grid-cols-2 gap-12">
+                   {products.slice(1).map((product, index) => (
+                      <motion.div 
+                        key={product._id}
+                        initial={{ opacity: 0, y: 50 }} 
+                        whileInView={{ opacity: 1, y: 0 }} 
+                        viewport={{ once: true }} 
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        className="group relative bg-[#050505] border border-white/5 rounded-sm overflow-hidden hover:border-[#D4AF37]/50 transition-all duration-300"
+                      >
+                        {/* Image Area */}
+                        <div className="h-[400px] w-full overflow-hidden relative">
+                           <img 
+                               src={product.images[0]?.url || "/orvella.jpeg"} 
+                               alt={product.name} 
+                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                           />
+                           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                           
+                           {/* Price Tag */}
+                           <div className="absolute top-4 right-4 bg-[#D4AF37] text-black font-bold px-4 py-1 text-sm tracking-wider">
+                              ₹{product.price}
+                           </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="p-8">
+                           <h3 className="text-2xl font-serif text-white mb-3">{product.name}</h3>
+                           <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2">
+                             {product.description}
+                           </p>
+                           
+                           <button 
+                             onClick={() => addToCart(product)}
+                             className="w-full py-4 border border-white/10 text-white uppercase tracking-widest text-xs font-bold hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37] transition-all flex items-center justify-center gap-2"
+                           >
+                             Add to Cart <ArrowRight size={14} />
+                           </button>
+                        </div>
+                      </motion.div>
+                   ))}
                 </div>
-            )}
-            
-            {/* Fallback if only 1 product or 0 */}
-            {products.length <= 1 && (
-                 <div className="text-center text-gray-500 py-10">
-                    More exclusive products dropping soon.
-                 </div>
+            ) : (
+                <div className="text-center text-gray-500 py-10">
+                   <p>More exclusive products dropping soon.</p>
+                </div>
             )}
         </div>
       </section>

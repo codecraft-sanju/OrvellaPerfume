@@ -6,8 +6,7 @@ import io from 'socket.io-client';
 import { 
   LayoutDashboard, ShoppingBag, Users, Settings, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, Plus, 
-  MapPin, Mail, Menu, MoreVertical, Filter, Download, ChevronRight, Loader2,
-  Save, Upload, Edit, Trash2, Phone, Calendar
+  Mail, Menu, Loader2, Save, Edit, Trash2, Calendar
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
@@ -141,7 +140,7 @@ export default function AdminDashboard() {
             showNotification("Product Updated Successfully!");
         } else {
             const { data } = await axios.post(`${API_URL}/admin/product/new`, productData, config);
-            setProducts([data.product, ...products]);
+            setProducts([data.product, ...products]); // New product added to top
             showNotification("Product Added Successfully!");
         }
         setShowAddProduct(false); 
