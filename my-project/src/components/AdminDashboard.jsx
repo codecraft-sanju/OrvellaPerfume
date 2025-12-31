@@ -533,7 +533,7 @@ export default function AdminDashboard() {
                                         }`}
                                     >
                                         {actionLoading?.id === order._id && actionLoading?.type === 'status' ? (
-                                             <Loader2 className="animate-spin" size={12} />
+                                               <Loader2 className="animate-spin" size={12} />
                                         ) : (
                                             <>
                                                 {order.orderStatus} <Edit size={12} />

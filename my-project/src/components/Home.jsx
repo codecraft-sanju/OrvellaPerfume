@@ -10,7 +10,8 @@ import {
 } from "framer-motion";
 import { 
   ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
-  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight
+  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight,
+  CreditCard, Banknote, Loader2, CheckCircle2
 } from "lucide-react";
 
 // --- SIBLING IMPORT ---
@@ -41,7 +42,7 @@ const CustomCursor = () => {
     const mouseMove = (e) => {
       setMousePos({ x: e.clientX, y: e.clientY });
       const target = e.target;
-      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a')) {
+      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a') || target.closest('.clickable')) {
         setIsHovering(true);
       } else {
         setIsHovering(false);
@@ -162,16 +163,169 @@ const TiltCard = ({ children }) => {
 };
 
 // ==========================================
-// 6. COMPONENT: ULTIMATE SUCCESS MODAL
+// 6. COMPONENT: CHECKOUT MODAL (NEW)
 // ==========================================
-const OrderSuccessModal = ({ onClose, onContinueShopping }) => {
+const CheckoutModal = ({ cart, subtotal, onClose, onConfirmOrder }) => {
+  const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' or 'cod'
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const COD_FEE = 50;
+  const finalTotal = paymentMethod === 'cod' ? subtotal + COD_FEE : subtotal;
+
+  const handlePlaceOrder = () => {
+    setIsProcessing(true);
+    // Simulate API call / Payment Gateway
+    setTimeout(() => {
+        setIsProcessing(false);
+        onConfirmOrder(paymentMethod);
+    }, 2500);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="relative z-10 bg-[#0a0a0a] border border-[#D4AF37]/30 w-full max-w-2xl rounded-sm overflow-hidden flex flex-col md:flex-row shadow-[0_0_80px_rgba(212,175,55,0.2)]"
+      >
+        {isProcessing ? (
+             <div className="w-full h-[500px] flex flex-col items-center justify-center p-12 text-center">
+                <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="mb-6"
+                >
+                    <Loader2 size={64} className="text-[#D4AF37]" />
+                </motion.div>
+                <h3 className="text-2xl font-serif text-white mb-2">Processing Payment</h3>
+                <p className="text-gray-400 text-sm tracking-widest uppercase">
+                    {paymentMethod === 'online' ? "Connecting to Gateway..." : "Confirming Order..."}
+                </p>
+             </div>
+        ) : (
+            <>
+                {/* Left Side: Order Summary */}
+                <div className="w-full md:w-1/2 p-8 border-b md:border-b-0 md:border-r border-white/10 bg-[#050505]">
+                    <h3 className="text-[#D4AF37] font-serif text-xl mb-6 tracking-wide">Order Summary</h3>
+                    <div className="space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                        {cart.map((item) => (
+                            <div key={item._id} className="flex justify-between items-center text-sm">
+                                <span className="text-gray-300">{item.name} <span className="text-gray-500">x{item.qty}</span></span>
+                                <span className="text-white font-mono">₹{item.price * item.qty}</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-white/10 space-y-3 text-sm">
+                        <div className="flex justify-between text-gray-400">
+                            <span>Subtotal</span>
+                            <span>₹{subtotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-400">
+                            <span>Shipping</span>
+                            <span className="text-green-500">FREE</span>
+                        </div>
+                        {paymentMethod === 'cod' && (
+                             <motion.div 
+                                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                                className="flex justify-between text-[#D4AF37]"
+                             >
+                                <span>COD Fee</span>
+                                <span>+₹{COD_FEE}</span>
+                             </motion.div>
+                        )}
+                        <div className="flex justify-between text-white text-lg font-bold border-t border-white/10 pt-4 mt-2">
+                            <span>Total</span>
+                            <span>₹{finalTotal.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Side: Payment Method */}
+                <div className="w-full md:w-1/2 p-8 flex flex-col justify-between">
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-white font-serif text-xl">Payment Method</h3>
+                            <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={20}/></button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Option 1: Online */}
+                            <label 
+                                className={`flex items-center gap-4 p-4 border rounded cursor-pointer transition-all duration-300 clickable ${
+                                    paymentMethod === 'online' 
+                                    ? 'border-[#D4AF37] bg-[#D4AF37]/10' 
+                                    : 'border-white/10 hover:border-white/30'
+                                }`}
+                                onClick={() => setPaymentMethod('online')}
+                            >
+                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'online' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
+                                    {paymentMethod === 'online' && <div className="w-3 h-3 rounded-full bg-[#D4AF37]" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white font-bold text-sm">Online Payment</span>
+                                        <CreditCard size={18} className="text-gray-400"/>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">UPI, Credit Card, Net Banking</p>
+                                </div>
+                            </label>
+
+                            {/* Option 2: COD */}
+                            <label 
+                                className={`flex items-center gap-4 p-4 border rounded cursor-pointer transition-all duration-300 clickable ${
+                                    paymentMethod === 'cod' 
+                                    ? 'border-[#D4AF37] bg-[#D4AF37]/10' 
+                                    : 'border-white/10 hover:border-white/30'
+                                }`}
+                                onClick={() => setPaymentMethod('cod')}
+                            >
+                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'cod' ? 'border-[#D4AF37]' : 'border-gray-500'}`}>
+                                    {paymentMethod === 'cod' && <div className="w-3 h-3 rounded-full bg-[#D4AF37]" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white font-bold text-sm">Cash on Delivery</span>
+                                        <Banknote size={18} className="text-gray-400"/>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Pay with cash upon arrival (+₹50)</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={handlePlaceOrder}
+                        className="mt-8 w-full py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-sm shadow-[0_0_20px_rgba(212,175,55,0.2)]"
+                    >
+                        {paymentMethod === 'online' ? `Pay ₹${finalTotal}` : `Place Order ₹${finalTotal}`}
+                    </button>
+                </div>
+            </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ==========================================
+// 7. COMPONENT: ULTIMATE SUCCESS MODAL (UPDATED)
+// ==========================================
+const OrderSuccessModal = ({ onClose, onContinueShopping, orderDetails }) => {
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[120] flex items-center justify-center px-4"
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={onClose} />
       
       <motion.div 
         initial={{ scale: 0.5, opacity: 0, y: 50 }} 
@@ -219,11 +373,18 @@ const OrderSuccessModal = ({ onClose, onContinueShopping }) => {
         
         <motion.p 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-            className="text-gray-400 text-sm mb-8 leading-relaxed font-light"
+            className="text-gray-400 text-sm mb-6 leading-relaxed font-light"
         >
             Your legacy has been secured. <br/>
-            <span className="text-[#D4AF37] font-mono mt-2 block">ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</span>
+            Payment Mode: <span className="text-white font-bold">{orderDetails?.method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</span>
         </motion.p>
+
+        <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+            className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 p-3 mb-8 rounded"
+        >
+             <p className="text-[#D4AF37] font-mono text-xs">ID: #ORV-{Math.floor(1000 + Math.random() * 9000)}</p>
+        </motion.div>
 
         <motion.button 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }}
@@ -252,6 +413,10 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null); 
   
+  // --- NEW STATE FOR CHECKOUT ---
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [lastOrderDetails, setLastOrderDetails] = useState(null);
+
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   
@@ -269,7 +434,7 @@ export default function Home() {
   // Body Scroll Lock & Back Button Handling
   useEffect(() => {
     // 1. Lock Body Scroll
-    if (mobileMenuOpen || showOrderSuccess || selectedProduct) {
+    if (mobileMenuOpen || showOrderSuccess || selectedProduct || isCheckoutOpen) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'unset';
@@ -280,6 +445,9 @@ export default function Home() {
         if (showOrderSuccess) {
             event.preventDefault();
             setShowOrderSuccess(false);
+        } else if (isCheckoutOpen) {
+            event.preventDefault();
+            setIsCheckoutOpen(false);
         } else if (selectedProduct) {
             event.preventDefault();
             setSelectedProduct(null);
@@ -289,7 +457,7 @@ export default function Home() {
         }
     };
 
-    if (showOrderSuccess || selectedProduct || mobileMenuOpen) {
+    if (showOrderSuccess || selectedProduct || mobileMenuOpen || isCheckoutOpen) {
         window.history.pushState(null, null, window.location.pathname);
         window.addEventListener('popstate', handlePopState);
     }
@@ -298,7 +466,7 @@ export default function Home() {
         window.removeEventListener('popstate', handlePopState);
         document.body.style.overflow = 'unset';
     };
-  }, [mobileMenuOpen, showOrderSuccess, selectedProduct, setShowOrderSuccess]);
+  }, [mobileMenuOpen, showOrderSuccess, selectedProduct, isCheckoutOpen, setShowOrderSuccess]);
 
   const DEFAULT_PRODUCT = {
     _id: "orvella-golden-root-main", 
@@ -338,11 +506,22 @@ export default function Home() {
     setMobileMenuOpen(false);
   };
 
-  // --- NEW: HANDLE CONTINUE SHOPPING ---
+  // --- NEW: HANDLE CHECKOUT & SUCCESS ---
+  const handleInitiateCheckout = () => {
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
+  const handleConfirmOrder = (method) => {
+    setIsCheckoutOpen(false);
+    setLastOrderDetails({ method }); // Save detail for success modal
+    setShowOrderSuccess(true);
+    // Note: Ideally, call clearCart() here from your Context if available
+  };
+
   const handleContinueShopping = () => {
-    setShowOrderSuccess(false); // Close modal
-    setIsCartOpen(false);       // Close cart if open
-    // Smooth scroll to the products section
+    setShowOrderSuccess(false);
+    setLastOrderDetails(null);
     setTimeout(() => {
         scrollToSection('details');
     }, 300);
@@ -381,10 +560,22 @@ export default function Home() {
         {notification && (
           <motion.div 
             initial={{ y: -100, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ y: -100, opacity: 0 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] bg-[#D4AF37] text-black px-8 py-3 rounded-b-lg font-bold shadow-[0_0_30px_rgba(212,175,55,0.4)] backdrop-blur-md"
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[130] bg-[#D4AF37] text-black px-8 py-3 rounded-b-lg font-bold shadow-[0_0_30px_rgba(212,175,55,0.4)] backdrop-blur-md"
           >
             {notification}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- CHECKOUT MODAL (NEW) --- */}
+      <AnimatePresence>
+        {isCheckoutOpen && (
+            <CheckoutModal 
+                cart={cart}
+                subtotal={cartTotal}
+                onClose={() => setIsCheckoutOpen(false)}
+                onConfirmOrder={handleConfirmOrder}
+            />
         )}
       </AnimatePresence>
 
@@ -393,7 +584,8 @@ export default function Home() {
         {showOrderSuccess && (
             <OrderSuccessModal 
                 onClose={() => setShowOrderSuccess(false)} 
-                onContinueShopping={handleContinueShopping} 
+                onContinueShopping={handleContinueShopping}
+                orderDetails={lastOrderDetails}
             />
         )}
       </AnimatePresence>
@@ -456,7 +648,7 @@ export default function Home() {
                 </div>
                 <button 
                   disabled={cart.length === 0}
-                  onClick={() => { setIsCartOpen(false); navigate("/checkout"); }}
+                  onClick={handleInitiateCheckout}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Checkout Now
