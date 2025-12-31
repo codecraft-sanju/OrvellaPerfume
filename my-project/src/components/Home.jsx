@@ -510,7 +510,6 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <nav 
         className={`fixed w-full z-50 top-0 transition-all duration-500 ${
-          // SIBLING LOGIC FIX: When menu is open, use SOLID BLACK to prevent transparency glitches when scrolled
           mobileMenuOpen 
             ? "bg-[#050505] py-4" 
             : isScrolled 
@@ -552,57 +551,57 @@ export default function Home() {
               )}
             </button>
             
-            {/* MOBILE TOGGLE */}
+            {/* MOBILE TOGGLE (Increased Z-Index to stay above overlay) */}
             <button 
-              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[150] relative" 
+              className="md:hidden text-white hover:text-[#D4AF37] transition-colors z-[250] relative" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
-
-        {/* MOBILE OVERLAY MENU */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-[#050505] z-[100] flex flex-col justify-center px-8 md:hidden"
-            >
-              <NoiseOverlay />
-              
-              <div className="space-y-8 relative z-10">
-                {[
-                  { l: "Home", action: () => { window.scrollTo({top:0, behavior:'smooth'}); setMobileMenuOpen(false); } },
-                  { l: "The Scent", action: () => scrollToSection('details') },
-                  { l: "Offers", action: () => scrollToSection('offer') },
-                ].map((item, i) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }}
-                  >
-                    <button onClick={item.action} className="text-4xl font-serif text-white hover:text-[#D4AF37] transition-colors text-left w-full block">
-                      {item.l}
-                    </button>
-                  </motion.div>
-                ))}
-
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="pt-8 border-t border-white/10 mt-8">
-                  {user ? (
-                      <div className="space-y-4">
-                        <p className="text-[#D4AF37] text-xl font-serif">Welcome, {user.name}</p>
-                        {user.role === 'admin' && <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-white">Admin Dashboard</Link>}
-                        <button onClick={() => {logout(); setMobileMenuOpen(false);}} className="text-red-500 text-lg">Logout</button>
-                      </div>
-                  ) : (
-                      <Link onClick={() => setMobileMenuOpen(false)} to="/auth" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Login / Register</Link>
-                  )}
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
+
+      {/* --- MOBILE OVERLAY MENU (Moved outside Navbar for Perfect Positioning) --- */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 top-0 left-0 w-full h-[100dvh] bg-[#050505] z-[200] flex flex-col justify-center px-8 md:hidden overflow-hidden"
+          >
+            <NoiseOverlay />
+            
+            <div className="space-y-8 relative z-10">
+              {[
+                { l: "Home", action: () => { window.scrollTo({top:0, behavior:'smooth'}); setMobileMenuOpen(false); } },
+                { l: "The Scent", action: () => scrollToSection('details') },
+                { l: "Offers", action: () => scrollToSection('offer') },
+              ].map((item, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }}
+                >
+                  <button onClick={item.action} className="text-4xl font-serif text-white hover:text-[#D4AF37] transition-colors text-left w-full block">
+                    {item.l}
+                  </button>
+                </motion.div>
+              ))}
+
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="pt-8 border-t border-white/10 mt-8">
+                {user ? (
+                    <div className="space-y-4">
+                      <p className="text-[#D4AF37] text-xl font-serif">Welcome, {user.name}</p>
+                      {user.role === 'admin' && <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-white">Admin Dashboard</Link>}
+                      <button onClick={() => {logout(); setMobileMenuOpen(false);}} className="text-red-500 text-lg">Logout</button>
+                    </div>
+                ) : (
+                    <Link onClick={() => setMobileMenuOpen(false)} to="/auth" className="text-2xl font-serif text-white hover:text-[#D4AF37]">Login / Register</Link>
+                )}
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- HERO SECTION --- */}
       <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
