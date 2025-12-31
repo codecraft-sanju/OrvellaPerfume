@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   motion, 
   useTransform, 
@@ -10,7 +10,7 @@ import {
 } from "framer-motion";
 import { 
   ShoppingBag, Menu, X, Star, ShieldCheck, Truck, 
-  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight, Check
+  Instagram, Twitter, Facebook, Plus, Minus, Trash2, LogOut, ArrowRight
 } from "lucide-react";
 
 // --- SIBLING IMPORT ---
@@ -243,7 +243,7 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState(null); 
   
   const navigate = useNavigate();
-  // const location = useLocation(); // removed as not needed for logic now
+  // Location logic removed to prevent conflicts
   const { scrollY } = useScroll();
   
   // Parallax Values
@@ -347,7 +347,7 @@ export default function Home() {
 
       {/* --- ORDER SUCCESS MODAL --- */}
       <AnimatePresence>
-        {/* 🔥 USING CONTEXT STATE NOW - NO URL CHECK */}
+        {/* 🔥 USING CONTEXT STATE NOW - BUTTON CLICK CLOSES IT */}
         {showOrderSuccess && <OrderSuccessModal onClose={() => setShowOrderSuccess(false)} />}
       </AnimatePresence>
 
