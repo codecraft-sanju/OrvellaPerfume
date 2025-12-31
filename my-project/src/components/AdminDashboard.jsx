@@ -650,16 +650,16 @@ export default function AdminDashboard() {
       <AnimatePresence>
         {showAddProduct && (
           <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:px-4">
-             <motion.div 
+              <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
                 onClick={() => setShowAddProduct(false)} 
                 className="absolute inset-0 bg-black/90 backdrop-blur-sm" 
-             />
-             <motion.div 
+              />
+              <motion.div 
                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="bg-[#121212] border-t md:border border-white/10 w-full md:max-w-lg md:rounded-xl rounded-t-2xl p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
-             >
+              >
                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#121212] z-10 pb-2 border-b border-white/5">
                     <h2 className="text-xl font-serif text-[#D4AF37]">{isEditing ? "Edit Edition" : "New Edition"}</h2>
                     <button onClick={() => setShowAddProduct(false)} className="bg-white/5 p-1 rounded-full text-gray-400 hover:text-white"><X size={20}/></button>

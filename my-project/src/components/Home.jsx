@@ -72,10 +72,10 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- HARDCODED REAL PRODUCT (DEFAULT / FALLBACK) ---
-  // Agar database empty hai, toh yeh dikhega par buy nahi hoga.
+  // --- HARDCODED REAL PRODUCT (FALLBACK FOR UI) ---
+  // Agar database khali hai, toh yeh dikhega taaki website blank na lage.
   const DEFAULT_PRODUCT = {
-    _id: "orvella-golden-root-main", // Fake ID
+    _id: "orvella-golden-root-main", // Fake ID to detect emptiness
     name: "Orvella The Golden Root",
     price: 5999, 
     description: "Crafted with a secret chemical formula for the elite. A scent that doesn't just linger, it commands attention. Experience the scent that defines luxury.",
@@ -85,22 +85,22 @@ export default function Home() {
     tag: "Premium Edition"
   };
 
-  // Determine Hero Product: 
+  // Logic: Agar DB se products aaye toh woh use karo, nahi toh Default wala dikhao
   const heroProduct = products.length > 0 ? products[0] : DEFAULT_PRODUCT;
 
-  // --- LOGIC: Handle Buy Action ---
+  // --- LOGIC: Handle Buy Action with Alert ---
   const handleBuy = (product) => {
-    // Check 1: Agar yeh Fake/Dummy ID hai (Matlab Database khali hai)
+    // 1. Check agar yeh Fake Product hai (Database Empty hai)
     if (product._id === "orvella-golden-root-main") {
-        alert("⚠️ DATABASE IS EMPTY!\n\nAdmin ne abhi tak koi Product add nahi kiya hai. Please Admin Dashboard me jakar pehle Product add karein tabhi Order place ho payega.");
-        return; // Yahi rok do, cart me add mat karo
+        alert("⚠️ SYSTEM NOTICE: DATABASE IS EMPTY\n\nAdmin ne abhi tak product database me add nahi kiya hai. Isliye order process nahi ho sakta.\n\nSolution: Please Admin Panel me login karein aur 'Add Edition' karke product save karein.");
+        return; // Yahi rok do
     }
 
-    // Check 2: Agar Real Product hai
+    // 2. Agar Real Product hai (Database se aaya hai)
     if (product) {
       addToCart(product);
       setIsCartOpen(true); // Open cart immediately
-      setSelectedProduct(null); // Close modal
+      setSelectedProduct(null); // Close modal if open
     }
   };
 
@@ -252,7 +252,7 @@ export default function Home() {
                 <p className="text-gray-400 leading-relaxed mb-8">{selectedProduct.description}</p>
                 <div className="text-2xl text-[#D4AF37] font-serif mb-8">₹{selectedProduct.price}</div>
                 
-                {/* ACTION BUTTON */}
+                {/* ACTION BUTTON WITH CHECK */}
                 <button 
                   onClick={() => handleBuy(selectedProduct)}
                   className="w-full bg-[#D4AF37] text-black py-4 font-bold uppercase tracking-widest hover:bg-white transition-colors"
@@ -364,7 +364,7 @@ export default function Home() {
             </p>
             
             <div className="pt-6 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
-              {/* PRIMARY ACTION BUTTON */}
+              {/* PRIMARY ACTION BUTTON WITH CHECK */}
               <button 
                 onClick={() => handleBuy(heroProduct)} 
                 className="px-10 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all duration-300 relative z-50 cursor-pointer"
@@ -466,7 +466,7 @@ export default function Home() {
 
                     <div className="flex items-center gap-8">
                         <div className="text-3xl text-[#D4AF37] font-serif">₹{heroProduct.price}</div>
-                        {/* BUY BUTTON */}
+                        {/* BUY BUTTON WITH CHECK */}
                         <button 
                             onClick={() => handleBuy(heroProduct)}
                             className="px-12 py-4 bg-[#D4AF37] text-black font-bold uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
