@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -6,14 +6,58 @@ import io from 'socket.io-client';
 import { 
   LayoutDashboard, ShoppingBag, Users, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, 
-  Save, Edit, Trash2, Calendar, Star, AlertTriangle
+  Save, Edit, Trash2, Calendar, Star, AlertTriangle, Menu,
+  Filter, ChevronRight, DollarSign, LogOut
 } from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 
 // --- API CONFIGURATION ---
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const API_URL = `${BACKEND_URL}/api/v1`; 
 const socket = io(BACKEND_URL); 
 
+// --- COMPONENTS ---
+
+// 1. VISUAL: NOISE OVERLAY (For Texture)
+const NoiseOverlay = () => (
+  <div className="fixed inset-0 z-[0] pointer-events-none opacity-[0.03] mix-blend-overlay">
+    <svg className="w-full h-full">
+      <filter id="noiseFilter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.80" numOctaves="3" stitchTiles="stitch" />
+      </filter>
+      <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+    </svg>
+  </div>
+);
+
+// 2. COMPONENT: STAT CARD
+function StatCard({ title, value, icon: Icon, color, delay }) {
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay * 0.1 }}
+            className="bg-[#121212]/80 backdrop-blur-md border border-white/5 p-5 rounded-2xl relative overflow-hidden group"
+        >
+            <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+                <Icon size={80} />
+            </div>
+            <div className="flex justify-between items-start relative z-10">
+                <div>
+                    <p className="text-gray-500 text-xs uppercase tracking-wider font-bold">{title}</p>
+                    <h3 className="text-2xl md:text-3xl font-serif text-white mt-2">{value}</h3>
+                </div>
+                <div className={`p-3 bg-white/5 rounded-xl ${color} shadow-lg shadow-black/50`}>
+                    <Icon size={20}/>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+// --- MAIN COMPONENT ---
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,15 +68,14 @@ export default function AdminDashboard() {
 
   // --- DATA STATES ---
   const [orders, setOrders] = useState([]);
-  // Hum array use karenge lekin sirf first item pe focus karenge
   const [products, setProducts] = useState([]); 
   const [customers, setCustomers] = useState([]);
   const [revenue, setRevenue] = useState(0);
 
-  // --- MODAL STATE (ONLY EDIT) ---
+  // --- MODAL STATE ---
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // Single Product Form State
+  // Single Product Form
   const [productForm, setProductForm] = useState({
     _id: null,
     name: "",
@@ -43,7 +86,7 @@ export default function AdminDashboard() {
     imageUrl: "" 
   });
 
-  // --- 1. FETCH DATA ---
+  // --- FETCH DATA ---
   const fetchData = async () => {
     try {
       const { data: orderData } = await axios.get(`${API_URL}/admin/orders`, { withCredentials: true });
@@ -78,9 +121,27 @@ export default function AdminDashboard() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // --- SINGLE PRODUCT LOGIC ---
-  
-  // 1. Initialize (Agar database khali hai to default Orvella product banaye)
+  // --- CHART DATA GENERATION ---
+  const chartData = useMemo(() => {
+    // Group orders by date (Last 7 entries for simplicity or mock it if empty)
+    if(orders.length === 0) return [
+        { name: 'Mon', sales: 0 }, { name: 'Tue', sales: 0 }, { name: 'Wed', sales: 0 }
+    ];
+
+    const data = orders.reduce((acc, order) => {
+        const date = new Date(order.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+        const existing = acc.find(item => item.name === date);
+        if (existing) {
+            existing.sales += order.totalPrice;
+        } else {
+            acc.push({ name: date, sales: order.totalPrice });
+        }
+        return acc;
+    }, []);
+    return data.slice(-7); // Last 7 days
+  }, [orders]);
+
+  // --- PRODUCT LOGIC ---
   const initializeProduct = async () => {
     const defaultData = {
         name: "Orvella The Golden Root",
@@ -97,17 +158,15 @@ export default function AdminDashboard() {
             withCredentials: true 
         });
         showNotification("Orvella Product Initialized!");
-        fetchData(); // Refresh data
+        fetchData(); 
     } catch (error) {
         showNotification("Failed to initialize");
     }
   };
 
-  // 2. Open Edit Modal (Load existing data)
   const openEditModal = () => {
       if (products.length === 0) return;
-      const currentProduct = products[0]; // Always take the first product
-      
+      const currentProduct = products[0]; 
       setProductForm({
           _id: currentProduct._id,
           name: currentProduct.name,
@@ -120,7 +179,6 @@ export default function AdminDashboard() {
       setShowEditModal(true);
   };
 
-  // 3. Update Product
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -134,7 +192,6 @@ export default function AdminDashboard() {
             withCredentials: true
         });
 
-        // Update local state locally to avoid refetch flicker
         setProducts([data.product]); 
         showNotification("Product Updated Successfully!");
         setShowEditModal(false);
@@ -143,8 +200,9 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- ORDER & USER ACTIONS ---
-  const cycleStatus = async (id, currentStatus) => {
+  // --- ORDER ACTIONS ---
+  const cycleStatus = async (id, currentStatus, e) => {
+    e?.stopPropagation();
     const statuses = ["Pending", "Shipped", "Delivered", "Cancelled"];
     const nextStatus = statuses[(statuses.indexOf(currentStatus) + 1) % statuses.length];
     try {
@@ -154,7 +212,8 @@ export default function AdminDashboard() {
     } catch (e) { showNotification("Failed to update"); }
   };
 
-  const deleteOrder = async (id) => {
+  const deleteOrder = async (id, e) => {
+    e?.stopPropagation();
     if(!window.confirm("Delete this order?")) return;
     try {
         await axios.delete(`${API_URL}/admin/order/${id}`, { withCredentials: true });
@@ -172,204 +231,383 @@ export default function AdminDashboard() {
     } catch (e) { showNotification("Failed update"); }
   };
 
-  // --- RENDER HELPERS ---
+  // --- FILTERED DATA ---
   const filteredOrders = orders.filter(o => 
     (o.user?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
     o._id.includes(searchQuery)
   );
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-[#D4AF37]">Loading Admin...</div>;
+  if (loading) return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-[#D4AF37]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4AF37]"></div>
+          <p className="mt-4 text-xs tracking-widest uppercase">Loading Dashboard...</p>
+      </div>
+  );
 
-  // The Active Product (Orvella)
   const masterProduct = products.length > 0 ? products[0] : null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#E0E0E0] flex font-sans selection:bg-[#D4AF37] selection:text-black overflow-hidden">
-      
-      {/* Toast Notification */}
+    <div className="min-h-screen bg-[#050505] text-[#E0E0E0] flex font-sans selection:bg-[#D4AF37] selection:text-black overflow-hidden relative">
+      <NoiseOverlay />
+
+      {/* --- TOAST --- */}
       <AnimatePresence>
         {notification && (
-          <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ opacity: 0 }} className="fixed top-2 left-1/2 -translate-x-1/2 z-[110] bg-[#D4AF37] text-black px-6 py-2 rounded-full font-bold shadow-lg">
-            {notification}
+          <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ opacity: 0, y: -20 }} className="fixed top-0 left-1/2 -translate-x-1/2 z-[150] bg-[#D4AF37] text-black px-6 py-3 rounded-b-xl font-bold shadow-[0_10px_40px_rgba(212,175,55,0.4)] flex items-center gap-2">
+            <CheckCircle size={18} /> {notification}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside className={`fixed md:relative z-40 w-72 h-full bg-[#121212] border-r border-white/10 flex flex-col transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
-        <div className="p-8 flex justify-between items-center">
-             <h1 className="text-2xl font-serif font-bold text-[#D4AF37] tracking-widest">ORVELLA <span className="block text-[10px] text-gray-500 font-sans tracking-[0.3em]">ADMIN</span></h1>
-             <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden"><X /></button>
+      {/* --- MOBILE SIDEBAR BACKDROP --- */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+            />
+        )}
+      </AnimatePresence>
+
+      {/* --- SIDEBAR --- */}
+      <aside className={`fixed md:relative z-50 w-[280px] h-full bg-[#0a0a0a] border-r border-white/5 flex flex-col transition-transform duration-300 ease-out shadow-2xl md:shadow-none ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        <div className="p-8 flex justify-between items-center border-b border-white/5">
+             <div className="flex flex-col">
+                <h1 className="text-2xl font-serif font-bold text-[#D4AF37] tracking-widest">ORVELLA</h1>
+                <span className="text-[10px] text-gray-500 font-sans tracking-[0.4em] uppercase">Admin Console</span>
+             </div>
+             <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-400 hover:text-white"><X size={24} /></button>
         </div>
-        <nav className="flex-1 px-4 space-y-2">
+        
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {[
                 { id: 'dashboard', icon: LayoutDashboard, label: 'Overview' },
-                { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-                { id: 'inventory', icon: Package, label: 'Product Details' }, // Renamed
-                { id: 'customers', icon: Users, label: 'Clientele' },
+                { id: 'orders', icon: ShoppingBag, label: 'Orders', badge: orders.filter(o => o.orderStatus === 'Pending').length },
+                { id: 'inventory', icon: Package, label: 'Products' }, 
+                { id: 'customers', icon: Users, label: 'Clients' },
             ].map(item => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id ? "bg-[#D4AF37] text-black font-bold" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>
-                    <item.icon size={20} /> {item.label}
+                <button 
+                    key={item.id} 
+                    onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }} 
+                    className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all duration-300 group ${activeTab === item.id ? "bg-[#D4AF37] text-black font-bold shadow-[0_0_20px_rgba(212,175,55,0.3)]" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <item.icon size={20} className={activeTab === item.id ? "text-black" : "text-[#D4AF37]"} /> 
+                        <span className="tracking-wide text-sm">{item.label}</span>
+                    </div>
+                    {item.badge > 0 && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeTab === item.id ? "bg-black text-[#D4AF37]" : "bg-[#D4AF37] text-black"}`}>
+                            {item.badge}
+                        </span>
+                    )}
                 </button>
             ))}
         </nav>
-        <div className="p-4"><Link to="/" className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#D4AF37] p-3"><ArrowLeft size={16} /> Back to Store</Link></div>
+        
+        <div className="p-6 border-t border-white/5">
+             <Link to="/" className="flex items-center gap-3 text-sm text-gray-500 hover:text-white transition-colors p-3 rounded-lg hover:bg-white/5">
+                <LogOut size={18} /> Exit Console
+             </Link>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        {/* Header */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#050505]/90 backdrop-blur-md sticky top-0 z-30">
+      {/* --- MAIN CONTENT AREA --- */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+        
+        {/* HEADER */}
+        <header className="h-20 border-b border-white/5 flex items-center justify-between px-6 md:px-10 bg-[#050505]/80 backdrop-blur-md sticky top-0 z-30">
             <div className="flex items-center gap-4">
-                <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden"><div className="space-y-1"><div className="w-6 h-0.5 bg-white"></div><div className="w-6 h-0.5 bg-white"></div><div className="w-6 h-0.5 bg-white"></div></div></button>
-                <h2 className="text-xl font-serif text-white capitalize">{activeTab === 'inventory' ? 'Product Management' : activeTab}</h2>
+                <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-white p-2 -ml-2">
+                    <Menu size={24} />
+                </button>
+                <h2 className="text-xl font-serif text-white capitalize tracking-wide hidden md:block">
+                    {activeTab === 'inventory' ? 'Product Management' : activeTab}
+                </h2>
+                {/* Mobile Title */}
+                <h2 className="text-lg font-serif text-[#D4AF37] md:hidden">ORVELLA</h2>
             </div>
-            {activeTab === 'orders' && (
-                <div className="relative">
-                    <input type="text" placeholder="Search orders..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-[#121212] border border-white/10 rounded-full px-4 py-2 pl-10 text-sm focus:border-[#D4AF37] w-64 outline-none" />
-                    <Search className="absolute left-3 top-2.5 text-gray-500" size={14} />
+            
+            <div className="flex items-center gap-4">
+                {activeTab === 'orders' && (
+                    <div className="relative group">
+                        <input 
+                            type="text" 
+                            placeholder="Search..." 
+                            value={searchQuery} 
+                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            className="bg-[#121212] border border-white/10 rounded-full px-4 py-2 pl-10 text-sm focus:border-[#D4AF37] w-40 md:w-64 outline-none transition-all focus:w-full md:focus:w-80 text-white placeholder:text-gray-600" 
+                        />
+                        <Search className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-[#D4AF37]" size={14} />
+                    </div>
+                )}
+                <div className="w-10 h-10 rounded-full bg-[#121212] border border-white/10 flex items-center justify-center text-[#D4AF37]">
+                    <Bell size={18} />
                 </div>
-            )}
+            </div>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
             
-            {/* 1. DASHBOARD */}
+            {/* 1. DASHBOARD VIEW */}
             {activeTab === 'dashboard' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard title="Total Revenue" value={`₹${revenue.toLocaleString()}`} icon={TrendingUp} color="text-[#D4AF37]" />
-                    <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-purple-400" />
-                    <StatCard title="Active Clients" value={customers.length} icon={Users} color="text-blue-400" />
-                    <StatCard title="Pending Orders" value={orders.filter(o => o.orderStatus === 'Pending').length} icon={Clock} color="text-orange-400" />
+                <div className="space-y-8 animate-fade-in-up">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <StatCard title="Total Revenue" value={`₹${revenue.toLocaleString()}`} icon={DollarSign} color="text-[#D4AF37]" delay={1} />
+                        <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-purple-400" delay={2} />
+                        <StatCard title="Active Clients" value={customers.length} icon={Users} color="text-blue-400" delay={3} />
+                        <StatCard title="Pending" value={orders.filter(o => o.orderStatus === 'Pending').length} icon={Clock} color="text-orange-400" delay={4} />
+                    </div>
+
+                    {/* Chart Section */}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+                        className="bg-[#121212]/50 border border-white/5 rounded-2xl p-6 md:p-8"
+                    >
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2"><TrendingUp size={18} className="text-[#D4AF37]"/> Sales Overview</h3>
+                            <select className="bg-black border border-white/10 text-xs text-gray-400 rounded-lg px-3 py-2 outline-none">
+                                <option>Last 7 Days</option>
+                            </select>
+                        </div>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                                    <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px' }}
+                                        itemStyle={{ color: '#D4AF37' }}
+                                    />
+                                    <Area type="monotone" dataKey="sales" stroke="#D4AF37" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </motion.div>
                 </div>
             )}
 
-            {/* 2. ORDERS */}
-            {(activeTab === 'orders' || activeTab === 'dashboard') && (
-                <div className="mt-8">
-                    <h3 className="text-lg font-bold text-white mb-4">Recent Orders</h3>
-                    <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
+            {/* 2. ORDERS VIEW (Mobile Optimized) */}
+            {(activeTab === 'orders' || activeTab === 'dashboard') && activeTab !== 'dashboard' && (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-white">All Orders</h3>
+                        <button className="flex items-center gap-2 text-xs bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg text-gray-400">
+                            <Filter size={14} /> Filter
+                        </button>
+                    </div>
+
+                    {/* Desktop Table (Hidden on Mobile) */}
+                    <div className="hidden md:block bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
                         <table className="w-full text-left text-sm text-gray-400">
                             <thead className="bg-[#1a1a1a] text-xs uppercase font-bold text-gray-300">
                                 <tr>
-                                    <th className="px-6 py-4">ID</th>
-                                    <th className="px-6 py-4">User</th>
-                                    <th className="px-6 py-4">Total</th>
+                                    <th className="px-6 py-4">Order ID</th>
+                                    <th className="px-6 py-4">Customer</th>
+                                    <th className="px-6 py-4">Amount</th>
                                     <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Action</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {filteredOrders.map(order => (
-                                    <tr key={order._id} className="hover:bg-white/5">
-                                        <td className="px-6 py-4 font-mono">#{order._id.slice(-6)}</td>
-                                        <td className="px-6 py-4">{order.user?.name || "Unknown"}</td>
-                                        <td className="px-6 py-4 text-[#D4AF37]">₹{order.totalPrice}</td>
+                                    <tr key={order._id} className="hover:bg-white/5 transition-colors cursor-pointer">
+                                        <td className="px-6 py-4 font-mono text-xs text-[#D4AF37]">#{order._id.slice(-6)}</td>
                                         <td className="px-6 py-4">
-                                            <button onClick={() => cycleStatus(order._id, order.orderStatus)} className={`px-2 py-1 rounded text-xs border ${order.orderStatus === 'Delivered' ? 'border-green-500 text-green-500' : 'border-yellow-500 text-yellow-500'}`}>{order.orderStatus}</button>
+                                            <div className="font-bold text-white">{order.user?.name || "Guest"}</div>
+                                            <div className="text-xs text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-right"><button onClick={() => deleteOrder(order._id)} className="text-red-500 hover:text-red-400"><Trash2 size={16}/></button></td>
+                                        <td className="px-6 py-4 text-white">₹{order.totalPrice}</td>
+                                        <td className="px-6 py-4">
+                                            <button onClick={(e) => cycleStatus(order._id, order.orderStatus, e)} className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 w-max ${
+                                                order.orderStatus === 'Delivered' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 
+                                                order.orderStatus === 'Cancelled' ? 'border-red-500/20 bg-red-500/10 text-red-500' :
+                                                'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
+                                            }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${order.orderStatus === 'Delivered' ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                                                {order.orderStatus}
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={(e) => deleteOrder(order._id, e)} className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        {filteredOrders.length === 0 && <div className="p-8 text-center text-gray-600">No orders found.</div>}
                     </div>
+
+                    {/* Mobile Card View (Visible ONLY on Mobile) */}
+                    <div className="md:hidden grid gap-4">
+                        {filteredOrders.map(order => (
+                            <motion.div 
+                                key={order._id} 
+                                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                className="bg-[#121212] border border-white/5 rounded-xl p-5 shadow-lg relative overflow-hidden"
+                            >
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <span className="text-[#D4AF37] font-mono text-xs">#{order._id.slice(-6)}</span>
+                                        <h4 className="text-white font-bold text-lg mt-1">{order.user?.name || "Guest"}</h4>
+                                        <p className="text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-serif text-white">₹{order.totalPrice}</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center border-t border-white/5 pt-4 mt-2">
+                                    <button 
+                                        onClick={(e) => cycleStatus(order._id, order.orderStatus, e)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 ${
+                                            order.orderStatus === 'Delivered' ? 'border-green-500/20 bg-green-500/10 text-green-500' : 
+                                            order.orderStatus === 'Cancelled' ? 'border-red-500/20 bg-red-500/10 text-red-500' :
+                                            'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
+                                        }`}
+                                    >
+                                        {order.orderStatus} <Edit size={12} />
+                                    </button>
+                                    
+                                    <button onClick={(e) => deleteOrder(order._id, e)} className="text-gray-500 hover:text-red-500 p-2">
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                    {filteredOrders.length === 0 && <div className="text-center py-10 text-gray-500">No orders found.</div>}
                 </div>
             )}
 
-            {/* 3. PRODUCT MANAGEMENT (SINGLE PRODUCT MODE) */}
+            {/* 3. PRODUCT MANAGEMENT */}
             {activeTab === 'inventory' && (
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-4xl mx-auto pb-10">
                     {!masterProduct ? (
-                        // EMPTY STATE: Show Initialization Button
-                        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/20 rounded-xl bg-[#121212]">
-                            <AlertTriangle size={48} className="text-[#D4AF37] mb-4" />
-                            <h3 className="text-2xl text-white font-serif mb-2">Product Not Initialized</h3>
-                            <p className="text-gray-500 mb-8">Admin database is empty. Initialize to setup "Orvella".</p>
-                            <button onClick={initializeProduct} className="bg-[#D4AF37] text-black font-bold px-8 py-3 rounded hover:bg-white transition-colors">
+                        <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-white/10 rounded-2xl bg-[#121212]/50 text-center px-4">
+                            <div className="w-20 h-20 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mb-6">
+                                <AlertTriangle size={32} className="text-[#D4AF37]" />
+                            </div>
+                            <h3 className="text-2xl text-white font-serif mb-2">Database Empty</h3>
+                            <p className="text-gray-500 mb-8 max-w-sm">The product database hasn't been initialized yet. Create the master product to start selling.</p>
+                            <button onClick={initializeProduct} className="bg-[#D4AF37] text-black font-bold px-8 py-3 rounded-lg hover:bg-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)]">
                                 Initialize Master Product
                             </button>
                         </div>
                     ) : (
-                        // FILLED STATE: Show Single Product Card
-                        <div className="bg-[#121212] border border-[#D4AF37]/30 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(212,175,55,0.1)]">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#121212] border border-[#D4AF37]/30 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.05)]"
+                        >
                             <div className="grid md:grid-cols-2">
-                                <div className="bg-[#050505] p-10 flex items-center justify-center border-b md:border-b-0 md:border-r border-white/10">
-                                    <img src={masterProduct.images[0]?.url} alt="Orvella" className="max-h-[300px] object-contain drop-shadow-[0_10px_30px_rgba(212,175,55,0.2)]" />
+                                <div className="bg-[#050505] p-8 md:p-12 flex items-center justify-center border-b md:border-b-0 md:border-r border-white/10 relative">
+                                    <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] text-[#D4AF37] uppercase tracking-widest font-bold">Live Preview</div>
+                                    <img src={masterProduct.images[0]?.url} alt="Orvella" className="max-h-[250px] md:max-h-[350px] object-contain drop-shadow-[0_20px_40px_rgba(212,175,55,0.2)]" />
                                 </div>
-                                <div className="p-8 md:p-10 flex flex-col justify-center">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[#D4AF37] uppercase tracking-widest text-xs font-bold">Active Product</span>
-                                        <div className="flex gap-2">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold border ${masterProduct.stock > 0 ? "border-green-500 text-green-500" : "border-red-500 text-red-500"}`}>
-                                                {masterProduct.stock} IN STOCK
-                                            </span>
-                                        </div>
+                                <div className="p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-[#121212] to-[#0a0a0a]">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-xs font-bold">Master Product</span>
+                                        <span className={`px-3 py-1 rounded text-[10px] font-bold border ${masterProduct.stock > 0 ? "border-green-500/30 text-green-500 bg-green-500/5" : "border-red-500/30 text-red-500 bg-red-500/5"}`}>
+                                            {masterProduct.stock} UNITS
+                                        </span>
                                     </div>
-                                    <h2 className="text-3xl font-serif text-white mb-2">{masterProduct.name}</h2>
-                                    <p className="text-2xl text-[#D4AF37] font-serif mb-6">₹{masterProduct.price}</p>
-                                    <div className="bg-white/5 p-4 rounded mb-6">
-                                        <h4 className="text-xs text-gray-500 uppercase mb-2">Description Preview</h4>
-                                        <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">{masterProduct.description}</p>
+                                    <h2 className="text-3xl md:text-4xl font-serif text-white mb-2">{masterProduct.name}</h2>
+                                    <p className="text-2xl text-[#D4AF37] font-serif mb-8">₹{masterProduct.price}</p>
+                                    
+                                    <div className="space-y-4 mb-8">
+                                        <div className="bg-white/5 p-4 rounded-lg border border-white/5">
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-2">Category</label>
+                                            <p className="text-white text-sm">{masterProduct.category}</p>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-lg border border-white/5">
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-2">Description</label>
+                                            <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">{masterProduct.description}</p>
+                                        </div>
                                     </div>
                                     
                                     <button 
                                         onClick={openEditModal}
-                                        className="w-full bg-white/10 hover:bg-[#D4AF37] hover:text-black text-white border border-white/20 hover:border-[#D4AF37] py-4 rounded font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                        className="w-full bg-[#D4AF37] hover:bg-white hover:scale-[1.02] active:scale-[0.98] text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-[0_5px_20px_rgba(212,175,55,0.2)]"
                                     >
-                                        <Edit size={18} /> Update Details
+                                        <Edit size={18} /> Edit Product
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     )}
                 </div>
             )}
 
-            {/* 4. CUSTOMERS */}
+            {/* 4. CLIENTELE VIEW */}
             {activeTab === 'customers' && (
                 <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-sm text-gray-400">
-                         <thead className="bg-[#1a1a1a] text-xs uppercase font-bold text-gray-300">
-                            <tr><th className="p-4">Name</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Joined</th></tr>
-                        </thead>
-                        <tbody>
-                            {customers.map(u => (
-                                <tr key={u._id} className="border-t border-white/5">
-                                    <td className="p-4 font-bold text-white">{u.name}</td>
-                                    <td className="p-4">{u.email}</td>
-                                    <td className="p-4"><select value={u.role} onChange={(e) => updateUserRole(u._id, e.target.value)} className="bg-black border border-white/20 rounded px-2 py-1 text-xs"><option value="user">USER</option><option value="admin">ADMIN</option></select></td>
-                                    <td className="p-4">{new Date(u.createdAt).toLocaleDateString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-gray-400">
+                            <thead className="bg-[#1a1a1a] text-xs uppercase font-bold text-gray-300">
+                                <tr><th className="p-4">Name</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Joined</th></tr>
+                            </thead>
+                            <tbody>
+                                {customers.map(u => (
+                                    <tr key={u._id} className="border-t border-white/5 hover:bg-white/5">
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D4AF37] to-yellow-700 flex items-center justify-center text-black font-bold text-xs">{u.name[0]}</div>
+                                                <span className="font-bold text-white">{u.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">{u.email}</td>
+                                        <td className="p-4">
+                                            <select 
+                                                value={u.role} 
+                                                onChange={(e) => updateUserRole(u._id, e.target.value)} 
+                                                className="bg-black border border-white/20 rounded px-2 py-1 text-xs outline-none focus:border-[#D4AF37]"
+                                            >
+                                                <option value="user">USER</option>
+                                                <option value="admin">ADMIN</option>
+                                            </select>
+                                        </td>
+                                        <td className="p-4 text-xs font-mono">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
-
         </div>
 
-        {/* --- EDIT MODAL (Simplified) --- */}
+        {/* --- EDIT MODAL (Mobile Optimized) --- */}
         <AnimatePresence>
             {showEditModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
-                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-[#121212] border border-[#D4AF37]/50 w-full max-w-lg rounded-xl p-6 relative z-10 shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-serif text-[#D4AF37]">Update Product</h2>
-                            <button onClick={() => setShowEditModal(false)}><X className="text-gray-400 hover:text-white"/></button>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+                    <motion.div 
+                        initial={{ y: 100, opacity: 0, scale: 0.95 }} 
+                        animate={{ y: 0, opacity: 1, scale: 1 }} 
+                        exit={{ y: 100, opacity: 0, scale: 0.95 }} 
+                        className="bg-[#121212] border border-[#D4AF37]/50 w-full max-w-lg rounded-2xl p-6 md:p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+                    >
+                        <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#121212] pb-4 border-b border-white/5 z-20">
+                            <h2 className="text-xl font-serif text-[#D4AF37]">Edit Master Product</h2>
+                            <button onClick={() => setShowEditModal(false)} className="bg-white/10 p-2 rounded-full hover:bg-white/20"><X size={18} className="text-white"/></button>
                         </div>
-                        <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                            <div><label className="text-xs uppercase text-gray-500">Name</label><input type="text" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="w-full bg-black border border-white/20 p-3 rounded text-white mt-1"/></div>
+                        <form onSubmit={handleUpdateSubmit} className="space-y-5">
+                            <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Product Name</label><input type="text" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none transition-colors"/></div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-xs uppercase text-gray-500">Price (₹)</label><input type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="w-full bg-black border border-white/20 p-3 rounded text-white mt-1"/></div>
-                                <div><label className="text-xs uppercase text-gray-500">Stock</label><input type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} className="w-full bg-black border border-white/20 p-3 rounded text-white mt-1"/></div>
+                                <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Price (₹)</label><input type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none"/></div>
+                                <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Stock Qty</label><input type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none"/></div>
                             </div>
-                            <div><label className="text-xs uppercase text-gray-500">Image URL</label><input type="text" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-black border border-white/20 p-3 rounded text-white mt-1"/></div>
-                            <div><label className="text-xs uppercase text-gray-500">Description</label><textarea value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="w-full bg-black border border-white/20 p-3 rounded text-white mt-1 h-24"/></div>
-                            <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded hover:bg-white transition-colors mt-2">Save Changes</button>
+                            <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Image URL</label><input type="text" value={productForm.imageUrl} onChange={e => setProductForm({...productForm, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none text-xs"/></div>
+                            <div><label className="text-xs uppercase text-gray-500 font-bold mb-1 block">Description</label><textarea value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="w-full bg-[#050505] border border-white/20 p-3 rounded-lg text-white focus:border-[#D4AF37] outline-none h-32 resize-none"/></div>
+                            <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded-xl hover:bg-white transition-colors mt-4 shadow-lg shadow-[#D4AF37]/20">Save Updates</button>
                         </form>
                     </motion.div>
                 </div>
@@ -379,16 +617,4 @@ export default function AdminDashboard() {
       </main>
     </div>
   );
-}
-
-// Simple Stat Card Helper
-function StatCard({ title, value, icon: Icon, color }) {
-    return (
-        <div className="bg-[#121212] border border-white/5 p-6 rounded-xl hover:border-[#D4AF37]/30 transition-colors">
-            <div className="flex justify-between items-start">
-                <div><p className="text-gray-500 text-xs uppercase">{title}</p><h3 className="text-2xl font-bold text-white mt-1">{value}</h3></div>
-                <div className={`p-2 bg-white/5 rounded-lg ${color}`}><Icon size={20}/></div>
-            </div>
-        </div>
-    );
 }
