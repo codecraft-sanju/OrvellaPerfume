@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios'; // Import Axios
-import io from 'socket.io-client'; // Import Socket.io
+import axios from 'axios';
+import io from 'socket.io-client';
 import { 
   LayoutDashboard, ShoppingBag, Users, Settings, ArrowLeft, 
   TrendingUp, Package, Search, Bell, CheckCircle, Clock, X, Plus, 
-  MapPin, Mail, Menu, MoreVertical, Filter, Download, ChevronRight, Loader2
+  MapPin, Mail, Menu, MoreVertical, Filter, Download, ChevronRight, Loader2,
+  Save, Upload // Added icons for the modal
 } from 'lucide-react';
 
 // --- API CONFIGURATION ---
-// Using import.meta.env for Vite environment variables
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const API_URL = `${BACKEND_URL}/api/v1`; 
 const socket = io(BACKEND_URL); 
@@ -28,6 +28,17 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [revenue, setRevenue] = useState(0);
+
+  // --- ADD PRODUCT MODAL STATE ---
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    price: "",
+    description: "",
+    category: "Perfume",
+    stock: 0,
+    imageUrl: "" 
+  });
 
   // --- 1. FETCH DATA ON MOUNT ---
   useEffect(() => {
@@ -90,6 +101,30 @@ export default function AdminDashboard() {
   const showNotification = (msg) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Create Product Action
+  const handleCreateProduct = async (e) => {
+    e.preventDefault();
+    try {
+      const config = { headers: { "Content-Type": "application/json" }, withCredentials: true };
+      
+      // Formatting data for Backend Schema
+      // Note: Backend expects images array with objects
+      const productData = {
+        ...newProduct,
+        images: [{ public_id: "manual_entry_" + Date.now(), url: newProduct.imageUrl }]
+      };
+
+      const { data } = await axios.post(`${API_URL}/admin/product/new`, productData, config);
+
+      setProducts([data.product, ...products]); // Update UI instantly
+      setShowAddProduct(false); // Close Modal
+      setNewProduct({ name: "", price: "", description: "", category: "Perfume", stock: 0, imageUrl: "" }); // Reset Form
+      showNotification("Product Added Successfully!");
+    } catch (error) {
+      showNotification(error.response?.data?.message || "Failed to create product");
+    }
   };
 
   // Update Order Status via API
@@ -265,7 +300,7 @@ export default function AdminDashboard() {
                         <div className="p-2 rounded-full hover:bg-white/5 transition-colors">
                             <Bell className="text-gray-400 group-hover:text-[#D4AF37] transition-colors" size={20} />
                         </div>
-                        {/* Notification Dot Logic can be added here */}
+                        {/* Notification Dot */}
                         <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                     </div>
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8a7020] flex items-center justify-center text-black font-bold shadow-lg cursor-pointer hover:scale-105 transition-transform">
@@ -410,13 +445,14 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* 3. INVENTORY TAB (Using Real Products) */}
+                {/* 3. INVENTORY TAB (Updated with Add Product Logic) */}
                 {activeTab === 'inventory' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Add New Product Card */}
+                        {/* Add New Product Card - NOW CLICKABLE */}
                         <motion.div 
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            onClick={() => setShowAddProduct(true)}
                             className="border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center p-8 text-gray-500 hover:text-[#D4AF37] hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 cursor-pointer transition-all group min-h-[300px]"
                         >
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-[#D4AF37]/20 transition-colors">
@@ -465,7 +501,7 @@ export default function AdminDashboard() {
                       </div>
                 )}
 
-                {/* 4. CUSTOMERS TAB (Using Real Users) */}
+                {/* 4. CUSTOMERS TAB */}
                 {activeTab === 'customers' && (
                     <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                         <div className="overflow-x-auto">
@@ -520,6 +556,59 @@ export default function AdminDashboard() {
             </motion.div>
         </div>
       </main>
+
+      {/* --- ADD PRODUCT MODAL --- */}
+      <AnimatePresence>
+        {showAddProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+             <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                onClick={() => setShowAddProduct(false)} 
+                className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+             />
+             <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} 
+                className="bg-[#121212] border border-white/10 w-full max-w-lg rounded-xl p-8 relative z-10 shadow-[0_0_50px_rgba(212,175,55,0.1)]"
+             >
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-serif text-[#D4AF37]">New Product</h2>
+                    <button onClick={() => setShowAddProduct(false)} className="text-gray-500 hover:text-white"><X /></button>
+                </div>
+                
+                <form onSubmit={handleCreateProduct} className="space-y-4">
+                    <div>
+                        <label className="text-xs uppercase text-gray-500 font-bold">Product Name</label>
+                        <input type="text" required value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs uppercase text-gray-500 font-bold">Price (₹)</label>
+                            <input type="number" required value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
+                        </div>
+                        <div>
+                            <label className="text-xs uppercase text-gray-500 font-bold">Stock</label>
+                            <input type="number" required value={newProduct.stock} onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs uppercase text-gray-500 font-bold">Description</label>
+                        <textarea required value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1 h-24" />
+                    </div>
+                    <div>
+                        <label className="text-xs uppercase text-gray-500 font-bold">Image URL</label>
+                        <input type="text" placeholder="https://..." required value={newProduct.imageUrl} onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})} className="w-full bg-[#050505] border border-white/10 rounded p-3 text-white focus:border-[#D4AF37] outline-none mt-1" />
+                        <p className="text-[10px] text-gray-600 mt-1">Tip: Right click any google image {'>'} Copy Image Address</p>
+                    </div>
+                    
+                    <button type="submit" className="w-full bg-[#D4AF37] text-black font-bold uppercase py-4 rounded hover:bg-white transition-colors flex items-center justify-center gap-2 mt-4">
+                        <Save size={18} /> Create Product
+                    </button>
+                </form>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

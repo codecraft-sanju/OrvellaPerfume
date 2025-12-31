@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
 
-// Handling Uncaught Exception (Backend crash prevention)
+// Handling Uncaught Exception
 process.on("uncaughtException", (err) => {
   console.log(`Error: ${err.message}`);
   console.log(`Shutting down the server due to Uncaught Exception`);
@@ -32,20 +32,17 @@ const server = http.createServer(app);
 // Socket.io Setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL, // <--- Now using .env variable
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
+// Make 'io' accessible globally in the app
+app.set("io", io); // <--- 🔥 THIS IS THE KEY LINE 🔥
+
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
-
-  // Listen for order status updates (Real-time updates for Admin)
-  socket.on("order_placed", (data) => {
-      // Broadcast to Admin Dashboard
-      io.emit("new_order_notification", data); 
-  });
 
   socket.on("disconnect", () => {
     console.log("User Disconnected", socket.id);
@@ -59,11 +56,10 @@ server.listen(PORT, () => {
   console.log(`Server is working on http://localhost:${PORT}`);
 });
 
-// Unhandled Promise Rejection (DB Connection Fail)
+// Unhandled Promise Rejection
 process.on("unhandledRejection", (err) => {
   console.log(`Error: ${err.message}`);
   console.log(`Shutting down the server due to Unhandled Promise Rejection`);
-
   server.close(() => {
     process.exit(1);
   });

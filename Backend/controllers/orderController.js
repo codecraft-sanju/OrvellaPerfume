@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const Notification = require('../models/Notification'); // For real-time alerts
+const Notification = require('../models/Notification'); // For DB alerts
 
 // @desc    Create new Order
 // @route   POST /api/v1/order/new
@@ -28,11 +28,24 @@ exports.newOrder = async (req, res, next) => {
       user: req.user._id,
     });
 
-    // Create a notification for the Admin Dashboard
+    // 1. Create DB Notification (Persistent)
     await Notification.create({
         message: `New Order placed by ${req.user.name} for ₹${totalPrice}`,
         type: 'order'
     });
+
+    // 2. Real-time Socket Notification (Instant Alert for Admin Dashboard)
+    // Yeh "req.app.get('io')" tabhi chalega jab server.js mein "app.set('io', io)" kiya ho
+    const io = req.app.get("io");
+    if (io) {
+        io.emit("new_order_notification", {
+            message: `New Order from ${req.user.name}`,
+            totalAmount: totalPrice,
+            orderId: order._id,
+            user: req.user.name,
+            createdAt: new Date()
+        });
+    }
 
     res.status(201).json({ success: true, order });
   } catch (error) {
@@ -70,7 +83,7 @@ exports.getAllOrders = async (req, res, next) => {
   try {
     const orders = await Order.find().populate("user", "name email");
     
-    // Calculate Total Revenue for Dashboard
+    // Calculate Total Revenue
     let totalAmount = 0;
     orders.forEach((order) => {
       if(order.orderStatus !== "Cancelled") {
@@ -97,9 +110,10 @@ exports.updateOrder = async (req, res, next) => {
 
     // If status is being changed to Shipped, decrease stock
     if (req.body.status === "Shipped") {
-      order.orderItems.forEach(async (o) => {
+      // Using for...of loop to handle async/await correctly
+      for (const o of order.orderItems) {
         await updateStock(o.product, o.quantity);
-      });
+      }
     }
 
     order.orderStatus = req.body.status;
@@ -110,7 +124,6 @@ exports.updateOrder = async (req, res, next) => {
 
     await order.save({ validateBeforeSave: false });
     
-    // Notify User (Ideally via Email, here just generic success)
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -134,7 +147,10 @@ exports.deleteOrder = async (req, res, next) => {
 // Helper: Update stock function
 async function updateStock(id, quantity) {
   const product = await Product.findById(id);
-  product.stock -= quantity;
-  product.sales += quantity; // Increment sales count for "Best Sellers" logic
-  await product.save({ validateBeforeSave: false });
+  
+  if (product) {
+      product.stock -= quantity;
+      product.sales += quantity; 
+      await product.save({ validateBeforeSave: false });
+  }
 }
